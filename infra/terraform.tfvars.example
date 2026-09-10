@@ -1,0 +1,23 @@
+# Example Terraform Variables
+# Copy this file to terraform.tfvars and fill in the values
+
+aws_region = "us-east-1"
+
+environment = "production"
+
+budget_limit = 1000
+
+notification_email = "aiops@cloudpiles.com"
+
+entra_id_tenant_id = "0d7c9ad4-6df4-4c9c-a088-f296098ad992"
+
+entra_id_application_id = "1d92561c-b198-48eb-9c8c-410fda3c969d"
+
+domain_name = "aiops.cloudpiles.net"
+
+# Generate these with: openssl rand -hex 32
+litellm_master_key = "CHANGE_ME_generate_with_openssl_rand_hex_32"
+
+langfuse_secret_key = "CHANGE_ME_generate_with_openssl_rand_hex_32"
+
+langfuse_public_key = "CHANGE_ME_generate_with_openssl_rand_hex_32"
