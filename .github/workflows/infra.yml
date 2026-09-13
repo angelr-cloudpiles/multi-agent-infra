@@ -23,4 +23,4 @@ jobs:
       - run: terraform -chdir=infra/runtime fmt -check -recursive
       - run: terraform -chdir=infra/runtime init -input=false
       - run: terraform -chdir=infra/runtime validate
-      - run: terraform -chdir=infra/runtime plan -input=false -no-color
+      - run: terraform -chdir=infra/runtime plan -input=false -refresh=false -no-color
