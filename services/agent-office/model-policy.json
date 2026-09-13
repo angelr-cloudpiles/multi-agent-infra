@@ -1,0 +1,20 @@
+{
+  "aliases": {
+    "agent-fast": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "agent-default": "us.anthropic.claude-sonnet-5",
+    "agent-reasoning": "us.anthropic.claude-sonnet-5",
+    "agent-critical-review": "us.anthropic.claude-opus-5",
+    "agent-creative": "us.anthropic.claude-fable-5-1",
+    "agent-research-escalation": "us.openai.gpt-5.6-terra"
+  },
+  "agents": {
+    "orchestrator-agent": {"alias":"agent-default","escalations":[],"maxIterations":12,"maxTokens":12000,"timeoutSeconds":300},
+    "research-agent": {"alias":"agent-default","escalations":["agent-reasoning","agent-research-escalation"],"maxIterations":16,"maxTokens":18000,"timeoutSeconds":420},
+    "code-agent": {"alias":"agent-default","escalations":["agent-reasoning"],"maxIterations":20,"maxTokens":24000,"timeoutSeconds":600},
+    "review-agent": {"alias":"agent-reasoning","escalations":["agent-critical-review"],"maxIterations":12,"maxTokens":16000,"timeoutSeconds":420},
+    "deploy-agent": {"alias":"agent-default","escalations":["agent-reasoning"],"maxIterations":12,"maxTokens":12000,"timeoutSeconds":300}
+  },
+  "contentAlias":"agent-creative",
+  "productionApprovalRequired":true,
+  "maxConcurrentRuns":2
+}

@@ -1,0 +1,66 @@
+name: Deploy Agent Office
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - services/agent-office/**
+      - .github/workflows/deploy-agent-office.yml
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-agent-office
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment: production
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-east-1
+      ECR_REPOSITORY: multi-agent-agent-office
+      ECS_CLUSTER: multi-agent-platform
+      ECS_SERVICE: multi-agent-agent-office
+      TASK_FAMILY: multi-agent-agent-office
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::278741241787:role/multi-agent-github-deploy-role
+          aws-region: us-east-1
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - name: Build immutable AMD64 image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: docker buildx build --platform linux/amd64 --provenance=false --load --tag "$IMAGE" services/agent-office
+      - name: Scan image
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH
+      - name: Push image
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: docker push "$IMAGE"
+      - name: Register task revision and update service
+        env:
+          IMAGE: ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+        run: |
+          aws ecs describe-task-definition --task-definition "$TASK_FAMILY" --query taskDefinition > task-definition.json
+          jq --arg image "$IMAGE" '.containerDefinitions |= map(if .name == "agent-office" then .image = $image else . end) | del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.compatibilities,.registeredAt,.registeredBy,.deregisteredAt)' task-definition.json > task-definition.rendered.json
+          revision=$(aws ecs register-task-definition --cli-input-json file://task-definition.rendered.json --query 'taskDefinition.taskDefinitionArn' --output text)
+          aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --task-definition "$revision" --force-new-deployment >/dev/null
+          aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE"
+      - name: Verify health and emit deployment event
+        run: |
+          curl --fail --retry 6 --retry-all-errors --retry-delay 10 https://aiops.cloudpiles.net/healthz
+          aws events put-events --entries '[{"Source":"cloudpiles.cicd","DetailType":"deployment.completed","Detail":"{\"service\":\"multi-agent-agent-office\",\"revision\":\"'"${GITHUB_SHA}"'\"}"}]'

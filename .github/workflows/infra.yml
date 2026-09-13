@@ -1,0 +1,25 @@
+name: Infrastructure checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::278741241787:role/multi-agent-github-plan-role
+          aws-region: us-east-1
+      - run: terraform fmt -check -recursive
+      - run: terraform -chdir=infra/runtime init -input=false
+      - run: terraform -chdir=infra/runtime validate
+      - run: terraform -chdir=infra/runtime plan -input=false -no-color
