@@ -1,5 +1,6 @@
 locals {
   github_repository = "angelr-cloudpiles/multi-agent-infra"
+  github_subject    = "repo:angelr-cloudpiles@228038680/multi-agent-infra@1365001608"
   github_oidc_url   = "https://token.actions.githubusercontent.com"
 }
 
@@ -24,7 +25,7 @@ data "aws_iam_policy_document" "github_plan_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repository}:*"]
+      values   = ["${local.github_subject}:*"]
     }
   }
 }
@@ -67,7 +68,7 @@ data "aws_iam_policy_document" "github_deploy_trust" {
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repository}:environment:production"]
+      values   = ["${local.github_subject}:environment:production"]
     }
   }
 }
