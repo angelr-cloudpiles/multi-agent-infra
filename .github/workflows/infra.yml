@@ -19,7 +19,8 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::278741241787:role/multi-agent-github-plan-role
           aws-region: us-east-1
-      - run: terraform fmt -check -recursive
+      - run: terraform fmt -check infra/elasticache.tf
+      - run: terraform -chdir=infra/runtime fmt -check -recursive
       - run: terraform -chdir=infra/runtime init -input=false
       - run: terraform -chdir=infra/runtime validate
       - run: terraform -chdir=infra/runtime plan -input=false -no-color
