@@ -24,7 +24,7 @@ data "aws_iam_policy_document" "github_plan_trust" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${local.github_repository}:pull_request", "repo:${local.github_repository}:ref:refs/heads/main"]
+      values   = ["repo:${local.github_repository}:*"]
     }
   }
 }
