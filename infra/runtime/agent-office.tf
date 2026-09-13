@@ -192,7 +192,7 @@ resource "aws_ecs_task_definition" "office" {
     ]
     secrets          = [{ name = "AUTH_SIGNING_KEY", valueFrom = "${aws_secretsmanager_secret.office_runtime.arn}:auth_signing_key::" }]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = local.logs, awslogs-region = "us-east-1", awslogs-stream-prefix = "agent-office" } }
-    healthCheck      = { command = ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""], interval = 30, timeout = 5, retries = 3, startPeriod = 60 }
+    healthCheck      = { command = ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:8080/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"], interval = 30, timeout = 5, retries = 3, startPeriod = 60 }
     stopTimeout      = 60
   }])
   depends_on = [aws_secretsmanager_secret_version.office_runtime, aws_iam_role_policy.office_execution_secret]
