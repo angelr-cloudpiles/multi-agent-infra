@@ -1,0 +1,25 @@
+{
+  "default_project_id": "multi-agent",
+  "projects": [
+    {
+      "project_id": "multi-agent",
+      "display_name": "Multi Agent Platform",
+      "environment": "production",
+      "description": "Operación de la plataforma de agentes.",
+      "access_mode": "platform",
+      "allowed_agents": ["orchestrator-agent", "research-agent", "code-agent", "review-agent", "deploy-agent"],
+      "allowed_modes": ["task", "meeting"],
+      "context_file": "multi-agent.md"
+    },
+    {
+      "project_id": "tattoo-studio",
+      "display_name": "Fede Rod Tattoo Studio",
+      "environment": "production",
+      "description": "Piloto de análisis de arquitectura y operación en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": ["orchestrator-agent", "research-agent", "review-agent"],
+      "allowed_modes": ["task", "meeting"],
+      "context_file": "tattoo-studio.md"
+    }
+  ]
+}

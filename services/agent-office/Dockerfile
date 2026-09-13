@@ -15,7 +15,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY server ./server
-COPY model-policy.json harnesses.json ./
+COPY model-policy.json harnesses.json projects.json ./
+COPY project-contexts ./project-contexts
 COPY --from=build /app/dist ./dist
 EXPOSE 8080
 CMD ["server/index.mjs"]
