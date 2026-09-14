@@ -238,6 +238,8 @@ resource "aws_cloudwatch_event_target" "office_langfuse_export" {
       assign_public_ip = false
     }
   }
+
+  depends_on = [aws_iam_role_policy.office_export_scheduler]
 }
 
 resource "aws_lb_target_group" "office" {
@@ -292,7 +294,7 @@ resource "aws_lb_listener_rule" "office_api_gateway" {
 
 variable "agent_office_image" {
   type    = string
-  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:a2b336457fa625faf3bef146d0a789a0903d48944f1626cadf66eefd72feb1b1"
+  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:94b99eda7eb09df36ddabb5145111c5b696862764904a9b3428319c9aa7f0204"
 }
 
 resource "aws_ecs_task_definition" "office" {
