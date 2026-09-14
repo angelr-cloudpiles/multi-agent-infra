@@ -136,6 +136,110 @@ resource "aws_iam_role_policy" "office_execution_secret" {
   })
 }
 
+# Langfuse OSS does not provide organization-scoped API keys or the managed
+# Blob Storage integration. This task exports each project's observation and
+# score metadata through its already-isolated project key instead. It never
+# requests the Langfuse IO field group, so prompt and response content are not
+# copied into the operational export bucket.
+resource "aws_iam_role" "office_export_task" {
+  name = "${local.office_name}-langfuse-export-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "ecs-tasks.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+
+resource "aws_iam_role_policy" "office_export_task" {
+  name = "${local.office_name}-langfuse-export-policy"
+  role = aws_iam_role.office_export_task.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = [data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn] },
+      { Effect = "Allow", Action = ["s3:PutObject"], Resource = "arn:aws:s3:::${local.traces_bucket}/exports/project-api/*" },
+      { Effect = "Allow", Action = ["kms:GenerateDataKey"], Resource = data.aws_kms_alias.office_s3.target_key_arn, Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } } }
+    ]
+  })
+}
+
+resource "aws_ecs_task_definition" "office_langfuse_export" {
+  family                   = "${local.office_name}-langfuse-export"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512"
+  memory                   = "1024"
+  execution_role_arn       = local.execution_role
+  task_role_arn            = aws_iam_role.office_export_task.arn
+
+  runtime_platform {
+    cpu_architecture        = "X86_64"
+    operating_system_family = "LINUX"
+  }
+
+  container_definitions = jsonencode([{
+    name      = "langfuse-project-export"
+    image     = var.agent_office_image
+    command   = ["server/langfuse-export.mjs"]
+    essential = true
+    environment = [
+      { name = "LANGFUSE_EXPORT_HOST", value = "https://langfuse.aiops.cloudpiles.net" },
+      { name = "LANGFUSE_EXPORT_BUCKET", value = local.traces_bucket },
+      { name = "LANGFUSE_EXPORT_PREFIX", value = "exports/project-api" },
+      { name = "LANGFUSE_EXPORT_PROJECTS", value = jsonencode([
+        { projectId = "multi-agent", secretId = "multi-agent-langfuse-keys" },
+        { projectId = "tattoo-studio", secretId = "multi-agent-langfuse-tattoo-studio-keys" }
+      ]) }
+    ]
+    logConfiguration = { logDriver = "awslogs", options = { awslogs-group = local.logs, awslogs-region = "us-east-1", awslogs-stream-prefix = "langfuse-project-export" } }
+  }])
+
+  depends_on = [aws_iam_role_policy.office_export_task]
+}
+
+resource "aws_iam_role" "office_export_scheduler" {
+  name = "${local.office_name}-langfuse-export-scheduler-role"
+  assume_role_policy = jsonencode({
+    Version   = "2012-10-17"
+    Statement = [{ Effect = "Allow", Principal = { Service = "events.amazonaws.com" }, Action = "sts:AssumeRole" }]
+  })
+}
+
+resource "aws_iam_role_policy" "office_export_scheduler" {
+  name = "${local.office_name}-langfuse-export-scheduler-policy"
+  role = aws_iam_role.office_export_scheduler.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      { Effect = "Allow", Action = ["ecs:RunTask"], Resource = aws_ecs_task_definition.office_langfuse_export.arn },
+      { Effect = "Allow", Action = ["iam:PassRole"], Resource = [local.execution_role, aws_iam_role.office_export_task.arn] }
+    ]
+  })
+}
+
+resource "aws_cloudwatch_event_rule" "office_langfuse_export" {
+  name                = "${local.office_name}-langfuse-export-daily"
+  description         = "Exports previous UTC day of Langfuse project metadata to encrypted S3"
+  schedule_expression = "cron(10 3 * * ? *)"
+}
+
+resource "aws_cloudwatch_event_target" "office_langfuse_export" {
+  rule      = aws_cloudwatch_event_rule.office_langfuse_export.name
+  target_id = "langfuse-project-export"
+  arn       = local.cluster
+  role_arn  = aws_iam_role.office_export_scheduler.arn
+
+  ecs_target {
+    task_definition_arn = aws_ecs_task_definition.office_langfuse_export.arn
+    task_count          = 1
+    launch_type         = "FARGATE"
+    network_configuration {
+      subnets          = local.private_subnets
+      security_groups  = [local.ecs_sg]
+      assign_public_ip = false
+    }
+  }
+}
+
 resource "aws_lb_target_group" "office" {
   name        = "multi-agent-agent-office"
   port        = 8080

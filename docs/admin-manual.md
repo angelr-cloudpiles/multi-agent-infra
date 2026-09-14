@@ -21,6 +21,7 @@ La documentación de diseño y configuración se mantiene en [ARCHITECTURE-BEDRO
 - Los proyectos de solo lectura no pueden desplegar ni modificar recursos.
 - Las aprobaciones de despliegue exigen una identidad independiente en el grupo `aiops-approvers`.
 - Las claves de Langfuse, AWS y credenciales de runtime permanecen en Secrets Manager; nunca se colocan en el frontend, documentación de usuario ni logs.
+- Las exportaciones diarias de Langfuse usan claves aisladas por proyecto y guardan sólo metadatos, uso y scores en Parquet cifrado. No incluyen prompts ni respuestas.
 
 ## Operación diaria
 

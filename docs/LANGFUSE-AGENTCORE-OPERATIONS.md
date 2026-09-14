@@ -36,9 +36,11 @@ Langfuse sólo debe recibir precios personalizados cuando el SKU de AWS Price Li
 
 ## Exports
 
-Langfuse tiene batch export habilitado hacia el bucket S3 cifrado de la plataforma, con prefijo `exports/`. Esta capacidad genera archivos sólo cuando un usuario solicita un export desde Langfuse; no hay exportaciones pendientes ni datos copiados automáticamente.
+Langfuse tiene batch export habilitado hacia el bucket S3 cifrado de la plataforma, con prefijo `exports/`. Esta capacidad genera archivos sólo cuando un usuario solicita un export desde Langfuse.
 
-La exportación programada por proyecto mediante la integración Blob Storage es distinta: requiere una API key de organización para consultar o guardar su configuración. Antes de crearla se debe acordar el proyecto, bucket o prefijo, frecuencia, campos a exportar, retención y responsable. Las claves de proyecto no pueden suplir ese alcance.
+La instancia corre Langfuse OSS 4.35.0. Las claves de organización y la integración Blob Storage gestionada son capacidades de Enterprise Edition, por lo que no se usan como requisito operativo. El task Fargate `multi-agent-agent-office-langfuse-export` ejecuta todos los días a las 03:10 UTC y consulta cada proyecto con su propia clave. Escribe Parquet en `exports/project-api/{project}/date={YYYY-MM-DD}/`, con archivos separados para observaciones y scores más `manifest.json`.
+
+El exportador solicita sólo los grupos `core`, `basic`, `time`, `metadata`, `model`, `usage`, `metrics` y `trace_context` de observaciones. No solicita ni persiste `input` ni `output`. El rol tiene acceso de lectura únicamente a los dos secretos de proyecto y de escritura sólo bajo ese prefijo de S3 con KMS. Para una ejecución de recuperación se puede lanzar la misma task con `EXPORT_DATE=YYYY-MM-DD`; la escritura reemplaza los objetos de esa partición y S3 conserva la versión previa.
 
 ## Respaldo de la migración v4
 
