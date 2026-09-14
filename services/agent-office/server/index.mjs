@@ -1,6 +1,6 @@
 import express from 'express';import helmet from 'helmet';import crypto from 'node:crypto';import path from 'node:path';
 import {authRoutes,requireAuth} from './auth.mjs';import {validateRun,mayApprove,publicError} from './domain.mjs';
-import {query,put,get,event,updateRun} from './store.mjs';import {policy,enqueue,runConsumer} from './agents.mjs';import {collect,eventConsumer} from './collectors.mjs';
+import {query,put,get,event,updateRun,chatMessage} from './store.mjs';import {policy,enqueue,runConsumer} from './agents.mjs';import {collect,eventConsumer} from './collectors.mjs';
 import {defaultProjectId,projectFor,publicProjects,scopeFor} from './projects.mjs';
 const app=express();app.disable('x-powered-by');app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'"],imgSrc:["'self'",'data:'],connectSrc:["'self'"],frameAncestors:["'none'"]}}}));app.use(express.json({limit:'24kb'}));
 app.get('/healthz',(_,res)=>res.json({status:'ok'}));authRoutes(app);
@@ -18,16 +18,33 @@ app.get('/api/events',async(req,res)=>{
  const data=await query(currentScope,'EVENT#',100,cursor);res.json({events:data.items,cursor:data.cursor?Buffer.from(JSON.stringify(data.cursor)).toString('base64url'):null});
 });
 const rate=new Map();
-app.post('/api/runs',async(req,res)=>{
- let project,input;try{project=projectFor(req.body?.project_id || defaultProjectId);input=validateRun(req.body,policy,project);}catch(e){return res.status(400).json({error:e.message});}const currentScope=scopeFor(project);
- const now=Date.now();const recent=(rate.get(req.user.sub)||[]).filter(t=>t>now-3600000);
- if(recent.length>=10)return res.status(429).json({error:'Run limit reached. Try again later.'});
+async function queueRun(user,project,input){
+ const currentScope=scopeFor(project);
+ const now=Date.now();const recent=(rate.get(user.sub)||[]).filter(t=>t>now-3600000);
+ if(recent.length>=10)throw Object.assign(new Error('Run limit reached. Try again later.'),{statusCode:429});
  const active=(await query(currentScope,'RUN#',100)).items.filter(r=>['queued','working'].includes(r.status));
- if(active.length>=2)return res.status(429).json({error:'Two runs are already active. Wait for completion.'});
- const run={...input,run_id:crypto.randomUUID(),requested_by:req.user.sub,status:'queued',created_at:new Date().toISOString()};
- await put(currentScope,'RUN#'+run.run_id,run);recent.push(now);rate.set(req.user.sub,recent);
+ if(active.length>=2)throw Object.assign(new Error('Two runs are already active. Wait for completion.'),{statusCode:429});
+ const run={...input,run_id:crypto.randomUUID(),requested_by:user.sub,status:'queued',created_at:new Date().toISOString()};
+ await put(currentScope,'RUN#'+run.run_id,run);recent.push(now);rate.set(user.sub,recent);
  try{await enqueue(run);}catch(e){await updateRun(currentScope,run.run_id,{status:'error',error_code:'QueueSubmissionFailed'});throw e;}
- await event({source:'office',type:'run.queued',agent_id:run.agent_id,run_id:run.run_id,state:'queued'},currentScope);res.status(202).json({run_id:run.run_id,project_id:project.project_id});
+ await event({source:'office',type:'run.queued',agent_id:run.agent_id,run_id:run.run_id,state:'queued'},currentScope);return run;
+}
+app.post('/api/runs',async(req,res)=>{
+ let project,input;try{project=projectFor(req.body?.project_id || defaultProjectId);input=validateRun(req.body,policy,project);const run=await queueRun(req.user,project,input);res.status(202).json({run_id:run.run_id,project_id:project.project_id});}catch(e){return res.status(e.statusCode||400).json({error:e.message});}
+});
+app.get('/api/chat',async(req,res)=>{
+ const project=requestProject(req,res);if(!project)return;const data=await query(scopeFor(project),'CHAT#',100);res.json({messages:data.items.reverse()});
+});
+app.post('/api/chat',async(req,res)=>{
+ const body=req.body||{};let project,input;try{
+  if(Object.keys(body).some(key=>!['message','agent_id','project_id'].includes(key)))throw new Error('Unsupported request field');
+  project=projectFor(body.project_id||defaultProjectId);
+  input=validateRun({prompt:body.message,agent_id:body.agent_id,project_id:project.project_id},policy,project);
+  const run=await queueRun(req.user,project,input),currentScope=scopeFor(project);
+  await chatMessage(currentScope,{role:'user',content:input.prompt,agent_id:input.agent_id,run_id:run.run_id});
+  await chatMessage(currentScope,{role:'system',content:`Pedido enviado a ${input.agent_id}.`,agent_id:input.agent_id,run_id:run.run_id});
+  res.status(202).json({run_id:run.run_id,project_id:project.project_id});
+ }catch(e){return res.status(e.statusCode||400).json({error:e.message});}
 });
 app.post('/api/runs/:id/approval',async(req,res)=>{
  const project=requestProject(req,res);if(!project)return;const currentScope=scopeFor(project);const run=await get(currentScope,'RUN#'+req.params.id);if(!run)return res.sendStatus(404);

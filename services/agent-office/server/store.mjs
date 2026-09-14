@@ -1,5 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, GetCommand, QueryCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
+import {randomUUID} from 'node:crypto';
 import {normalizeEvent} from './domain.mjs';
 import {scopeFor} from './projects.mjs';
 export const db=DynamoDBDocumentClient.from(new DynamoDBClient({region:'us-east-1'}),{marshallOptions:{removeUndefinedValues:true}});
@@ -19,6 +20,12 @@ export async function updateRun(currentScope,run_id,patch,expected){
  let condition='attribute_exists(pk)';
  if(expected){condition+=' AND #status = :expected';names['#status']='status';values[':expected']=expected;}
  await db.send(new UpdateCommand({TableName:table,Key:key(currentScope,'RUN#'+run_id),UpdateExpression:'SET '+fields.map((k,i)=>`#k${i}=:v${i}`).join(', '),ConditionExpression:condition,ExpressionAttributeNames:names,ExpressionAttributeValues:values}));
+}
+export async function chatMessage(currentScope,{role,content,agent_id='platform',run_id=null}){
+ if(!['user','agent','system'].includes(role))throw new Error('Invalid chat role');
+ if(typeof content!=='string'||!content.trim()||content.length>60000)throw new Error('Invalid chat content');
+ const created_at=new Date().toISOString(),message_id=randomUUID();
+ return put(currentScope,`CHAT#${created_at}#${message_id}`,{message_id,role,content:content.trim(),agent_id,run_id,created_at});
 }
 export async function event(input,currentScope=scope){
  const e=normalizeEvent(input,currentScope);
