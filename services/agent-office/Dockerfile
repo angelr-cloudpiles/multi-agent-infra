@@ -10,7 +10,9 @@ RUN npm ci --ignore-scripts
 COPY . .
 RUN npm run build
 
-FROM gcr.io/distroless/nodejs22-debian12:nonroot
+# Debian 13 carries the supported OpenSSL line; Debian 12's last distroless
+# image includes fixed CVEs that block the production image security gate.
+FROM gcr.io/distroless/nodejs22-debian13:nonroot
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=production-dependencies /app/node_modules ./node_modules
