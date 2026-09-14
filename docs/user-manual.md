@@ -48,6 +48,8 @@ La actividad entre proyectos permite identificar si un mismo agente tiene trabaj
 
 Cuando un agente no puede continuar, aparece el estado **Requiere atención** y un indicador en el mapa. Use **Revisar tarea que requiere atención**.
 
+El indicador representa una tarea raíz pendiente. Al completarla, el agente vuelve a disponible aunque el hilo conserve intentos o continuaciones históricas para auditoría.
+
 La vista de asistencia tiene tres propiedades:
 
 - Muestra sólo el pedido original, sus resultados y sus continuaciones; no mezcla el historial general del proyecto.

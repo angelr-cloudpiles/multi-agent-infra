@@ -2,6 +2,7 @@ import express from 'express';import helmet from 'helmet';import crypto from 'no
 import {authRoutes,requireAuth} from './auth.mjs';import {ASSISTABLE_STATUSES,validateRun,mayApprove,mayAssist,validateAssistance,canRetrySynthesis,publicError} from './domain.mjs';
 import {query,put,get,event,updateRun,chatMessage,updateChatMessage} from './store.mjs';import {policy,enqueue,projectControl,recordUserFeedback,runConsumer} from './agents.mjs';import {collect,eventConsumer} from './collectors.mjs';
 import {defaultProjectId,projectFor,publicProjects,scopeFor} from './projects.mjs';
+import {activityForAgent} from './agent-activity.mjs';
 const app=express();app.disable('x-powered-by');app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'"],imgSrc:["'self'",'data:'],connectSrc:["'self'"],frameAncestors:["'none'"]}}}));app.use(express.json({limit:'24kb'}));
 const storage=new S3Client({region:'us-east-1'}),attachmentLimit=25*1024*1024;
 app.get('/healthz',(_,res)=>res.json({status:'ok'}));authRoutes(app);
@@ -16,14 +17,7 @@ app.get('/api/projects/:projectId/control',async(req,res)=>{
 app.get('/api/agents/activity',async(_,res)=>{
  const agentIds=Object.keys(policy.agents),projects=publicProjects();
  const scoped=await Promise.all(projects.map(async project=>{const currentScope=scopeFor(project);const [runs,events]=await Promise.all([query(currentScope,'RUN#',100),query(currentScope,'EVENT#',100)]);const activeRuns=runs.items.filter(run=>run.requested_by!=='agent-office-validation'),hiddenRunIds=new Set(runs.items.filter(run=>run.requested_by==='agent-office-validation').map(run=>run.run_id));return {project,runs:activeRuns,events:events.items.filter(item=>!hiddenRunIds.has(item.run_id))};}));
- const agents=Object.fromEntries(agentIds.map(agent_id=>{
-  const entries=scoped.flatMap(({project,runs,events})=>{const run=runs.find(item=>item.agent_id===agent_id&&['queued','working','waiting_for_approval','paused','error'].includes(item.status));const root=run&&(runs.find(item=>item.run_id===(run.parent_task_id||run.parent_run_id))||run);const event=events.find(item=>item.agent_id===agent_id);return run||event?{project_id:project.project_id,project_name:project.display_name,run,root,event}:null;}).filter(Boolean);
-  const active=entries.filter(entry=>entry.run).sort((a,b)=>String(b.run.created_at).localeCompare(String(a.run.created_at)))[0];
-  const latest=entries.sort((a,b)=>String(b.event?.timestamp||b.run?.created_at).localeCompare(String(a.event?.timestamp||a.run?.created_at)))[0];
-  // Historical events describe prior work; only a persisted non-terminal run may place an agent in an attention state.
-  const state=active?.run.status || 'idle';
-  return [agent_id,{state,active_run_id:active?.run?.run_id||null,active_task_id:active?.root?.run_id||null,active_project_id:active?.project_id||latest?.project_id||null,active_project_name:active?.project_name||latest?.project_name||null,task:active?.root?.prompt||active?.run?.prompt||null,event:latest?.event?.type||null,projects:entries.map(entry=>({project_id:entry.project_id,project_name:entry.project_name,state:entry.run?.status||'idle',task:entry.root?.prompt||entry.run?.prompt||null}))}];
- }));
+ const agents=Object.fromEntries(agentIds.map(agent_id=>[agent_id,activityForAgent(scoped,agent_id)]));
  res.json({agents});
 });
 app.get('/api/snapshot',async(req,res)=>{

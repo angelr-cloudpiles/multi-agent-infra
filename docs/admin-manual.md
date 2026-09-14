@@ -49,6 +49,8 @@ El servicio está sano cuando `running` coincide con `desired`, no hay tareas pe
 
 Una continuación por asistencia debe cerrar la tarea raíz cuando concluye. Si el detalle queda en `Requiere atención` pese a que aparece una respuesta final, conserve los identificadores de tarea y traza, revise el error de DynamoDB en los logs del servicio y no cree otra tarea para compensarlo.
 
+El estado del mapa se calcula desde las tareas raíz aún abiertas. Una continuación histórica con error no puede mantener al agente en **Requiere atención** si su tarea raíz ya quedó completada; los eventos y trazas de esa continuación siguen disponibles en el hilo y en Langfuse.
+
 No borre una tarea para resolver un error: el hilo y los resultados preservados son evidencia operativa.
 
 ### Verificar observabilidad
