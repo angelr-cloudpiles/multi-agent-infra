@@ -34,6 +34,12 @@ El estado detallado de la migración a observaciones v4, incluidos los controles
 
 Langfuse sólo debe recibir precios personalizados cuando el SKU de AWS Price List coincida exactamente con el modelo e inference profile que se invoca. Al 2026-09-14, AWS Price List no publica coincidencias de `us-east-1` para varios identificadores configurados (`us.openai.gpt-*`, `us.anthropic.claude-*-5`, `us.amazon.nova-pro-v1:0`). Esos modelos se mantienen sin una tarifa personalizada para evitar reportar costos falsos. Cuando AWS publique el SKU, se debe cargar su precio por token y validarlo frente a Cost and Usage Report antes de promoverlo a Langfuse.
 
+## Exports
+
+Langfuse tiene batch export habilitado hacia el bucket S3 cifrado de la plataforma, con prefijo `exports/`. Esta capacidad genera archivos sólo cuando un usuario solicita un export desde Langfuse; no hay exportaciones pendientes ni datos copiados automáticamente.
+
+La exportación programada por proyecto mediante la integración Blob Storage es distinta: requiere una API key de organización para consultar o guardar su configuración. Antes de crearla se debe acordar el proyecto, bucket o prefijo, frecuencia, campos a exportar, retención y responsable. Las claves de proyecto no pueden suplir ese alcance.
+
 ## Respaldo de la migración v4
 
 Antes de Langfuse v4 se creó el snapshot RDS `multi-agent-langfuse-pre-v4-20260914` y un recovery point de AWS Backup para el EFS de ClickHouse. EFS tiene backups automáticos habilitados. ClickHouse se actualizó a 25.12, el mínimo soportado por Langfuse v4.
