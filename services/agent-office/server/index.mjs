@@ -5,9 +5,9 @@ import {defaultProjectId,projectFor,publicProjects,scopeFor} from './projects.mj
 const app=express();app.disable('x-powered-by');app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'"],imgSrc:["'self'",'data:'],connectSrc:["'self'"],frameAncestors:["'none'"]}}}));app.use(express.json({limit:'24kb'}));
 app.get('/healthz',(_,res)=>res.json({status:'ok'}));authRoutes(app);
 function requestProject(req,res){try{return projectFor(req.query.project_id || defaultProjectId);}catch{return res.status(400).json({error:'Unknown project'}),null;}}
-app.get('/api/config',(_,res)=>res.json({agents:policy.agents,default_project_id:defaultProjectId,projects:publicProjects()}));
 app.use('/api',requireAuth);
 app.get('/api/me',(req,res)=>res.json({sub:req.user.sub,username:req.user.username,canApprove:(req.user['cognito:groups'] || []).includes('aiops-approvers')}));
+app.get('/api/config',(_,res)=>res.json({agents:policy.agents,default_project_id:defaultProjectId,projects:publicProjects()}));
 app.get('/api/snapshot',async(req,res)=>{
  const project=requestProject(req,res);if(!project)return;const currentScope=scopeFor(project);
  const [events,agents,runs]=await Promise.all([query(currentScope,'EVENT#',100),query(currentScope,'AGENT#',20),query(currentScope,'RUN#',100)]);
