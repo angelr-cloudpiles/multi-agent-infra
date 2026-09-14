@@ -170,7 +170,7 @@ app.post('/api/runs/:id/assist',async(req,res)=>{
   await chatMessage(currentScope,{role:'user',content:assistance.message,agent_id:parent.agent_id,run_id:run.run_id,parent_task_id:parent.run_id,attachments});
   await chatMessage(currentScope,{role:'system',content:`Asistencia enviada a ${parent.agent_id}; continuación ${run.run_id.slice(0,8)} encolada.`,agent_id:parent.agent_id,run_id:run.run_id,parent_task_id:parent.run_id});
   await event({source:'office',type:'run.assistance_submitted',agent_id:parent.agent_id,run_id:run.run_id,state:'queued',parent_run_id:parent.run_id},currentScope);
-  res.status(202).json({run_id:run.run_id,parent_run_id:parent.run_id,project_id:project.project_id});
+  res.status(202).json({run_id:run.run_id,task_id:parent.run_id,parent_run_id:parent.run_id,project_id:project.project_id});
  }catch(e){return res.status(e.statusCode||400).json({error:e.message});}
 });
 app.post('/api/runs/:id/approval',async(req,res)=>{
