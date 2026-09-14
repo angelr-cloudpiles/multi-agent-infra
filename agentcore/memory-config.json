@@ -1,0 +1,32 @@
+{
+  "name": "AgentOfficeProjectMemory",
+  "description": "Long-term project memory for Agent Office. Actor IDs are generated from project and a one-way user hash.",
+  "memoryExecutionRoleArn": "arn:aws:iam::278741241787:role/multi-agent-agentcore-execution-role",
+  "eventExpiryDuration": 90,
+  "memoryStrategies": [
+    {
+      "semanticMemoryStrategy": {
+        "name": "ProjectFacts",
+        "description": "Extract durable, project-scoped technical facts, verified decisions, constraints, open risks, and accepted outcomes. Never retain credentials, access tokens, passwords, secret values, or personally identifying data.",
+        "namespaceTemplates": [
+          "/projects/{actorId}/facts/"
+        ]
+      }
+    },
+    {
+      "summaryMemoryStrategy": {
+        "name": "ProjectSessionSummaries",
+        "description": "Summarize the work completed, evidence reviewed, unresolved questions, and next actions for a project session. Never retain credentials, access tokens, passwords, secret values, or personally identifying data.",
+        "namespaceTemplates": [
+          "/projects/{actorId}/sessions/{sessionId}/"
+        ]
+      }
+    }
+  ],
+  "tags": {
+    "Project": "multi-agent-team",
+    "Environment": "production",
+    "ManagedBy": "agent-office",
+    "DataClass": "project-context"
+  }
+}

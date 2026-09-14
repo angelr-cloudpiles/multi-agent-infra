@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { InMemorySpanExporter } from '@opentelemetry/sdk-trace-base';
+import { LangfuseSpanProcessor } from '@langfuse/otel';
+import { LangfuseOtelSpanAttributes, setLangfuseTracerProvider } from '@langfuse/tracing';
+import { createLangfuseV4Provider, recordLangfuseV4Generation } from './langfuse-v4.mjs';
+
+test('v4 tracing writes root and generation observations with propagated project context', async () => {
+  const exporter = new InMemorySpanExporter();
+  const project = { project_id: 'tattoo-studio', environment: 'production', access_mode: 'read_only_context', bedrock: { region: 'us-east-1' }, langfuse: { project_id: 'tattoo-studio' } };
+  const provider = createLangfuseV4Provider({ project, keys: { public_key: 'pk-test', secret_key: 'sk-test' }, spanProcessor: new LangfuseSpanProcessor({ exporter, publicKey: 'pk-test', secretKey: 'sk-test' }) });
+  const result = await recordLangfuseV4Generation({ project, keys: { public_key: 'pk-test', secret_key: 'sk-test' }, provider, runId: 'run-123', agentId: 'research-agent', alias: 'bedrock-claude-haiku-4-5', sessionId: 'session-123', requesterHash: 'user-a1b2c3', request: 'Diseña una propuesta', output: 'Propuesta lista', usage: { inputTokens: 11, outputTokens: 7, totalTokens: 18 }, startedAt: new Date('2026-09-14T12:00:00Z'), prompt: { name: 'agents.research-agent.system', version: 3 } });
+  await provider.forceFlush();
+  const spans = exporter.getFinishedSpans();
+  const root = spans.find((span) => span.name === 'agent-office.run');
+  const generation = spans.find((span) => span.name === 'bedrock.bedrock-claude-haiku-4-5');
+  assert.equal(spans.length, 2);
+  assert.ok(root);
+  assert.ok(generation);
+  assert.equal(root.spanContext().traceId, generation.spanContext().traceId);
+  assert.equal(result.traceId, root.spanContext().traceId);
+  assert.equal(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_TYPE], 'agent');
+  assert.equal(generation.attributes[LangfuseOtelSpanAttributes.OBSERVATION_TYPE], 'generation');
+  assert.match(String(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_INPUT]), /Diseña una propuesta/);
+  assert.match(String(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_OUTPUT]), /Propuesta lista/);
+  assert.equal(generation.attributes[LangfuseOtelSpanAttributes.TRACE_SESSION_ID], 'session-123');
+  assert.equal(generation.attributes[LangfuseOtelSpanAttributes.TRACE_USER_ID], 'user-a1b2c3');
+  await provider.shutdown();
+  setLangfuseTracerProvider(null);
+});

@@ -15,6 +15,8 @@ resource "aws_iam_role_policy" "harness_runtime" {
     { Effect = "Allow", Action = ["logs:CreateLogGroup", "logs:DescribeLogStreams", "logs:CreateLogStream", "logs:PutLogEvents"], Resource = "arn:aws:logs:us-east-1:278741241787:log-group:/aws/bedrock-agentcore/*" },
     { Effect = "Allow", Action = ["logs:DescribeLogGroups"], Resource = "*" },
     { Effect = "Allow", Action = ["cloudwatch:PutMetricData"], Resource = "*", Condition = { StringEquals = { "cloudwatch:namespace" = "bedrock-agentcore" } } },
+    { Effect = "Allow", Action = ["bedrock-agentcore:GetMemory", "bedrock-agentcore:CreateEvent", "bedrock-agentcore:ListEvents", "bedrock-agentcore:RetrieveMemoryRecords", "bedrock-agentcore:ListMemoryRecords", "bedrock-agentcore:DeleteMemoryRecord"], Resource = "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/*" },
+    { Effect = "Allow", Action = ["kms:CreateGrant", "kms:Decrypt", "kms:DescribeKey", "kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext", "kms:ReEncrypt*"], Resource = aws_kms_key.agentcore_memory.arn, Condition = { StringEquals = { "kms:ViaService" = "bedrock-agentcore.us-east-1.amazonaws.com" } } },
     { Effect = "Allow", Action = ["bedrock-agentcore:GetWorkloadAccessToken", "bedrock-agentcore:GetWorkloadAccessTokenForJWT"], Resource = ["arn:aws:bedrock-agentcore:us-east-1:278741241787:workload-identity-directory/default", "arn:aws:bedrock-agentcore:us-east-1:278741241787:workload-identity-directory/default/workload-identity/harness_*"] }
   ] })
 }

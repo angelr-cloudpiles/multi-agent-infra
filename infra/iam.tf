@@ -17,7 +17,9 @@ resource "aws_iam_role" "agentcore_execution" {
           "aws:SourceAccount" = "278741241787"
         }
         ArnLike = {
-          "aws:SourceArn" = "arn:aws:bedrock-agentcore:*:278741241787:harness/*"
+          # AgentCore creates an internal runtime while provisioning a Harness.
+          # The account and regional scope remain constrained to this platform.
+          "aws:SourceArn" = "arn:aws:bedrock-agentcore:us-east-1:278741241787:*"
         }
       }
     }]
@@ -46,6 +48,12 @@ resource "aws_iam_role_policy" "agentcore_execution" {
         ]
       },
       {
+        Effect    = "Allow"
+        Action    = ["kms:Decrypt"]
+        Resource  = aws_kms_key.s3.arn
+        Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } }
+      },
+      {
         Effect = "Allow"
         Action = [
           "bedrock-agentcore:InvokeAgentRuntime",
@@ -62,7 +70,8 @@ resource "aws_iam_role_policy" "agentcore_execution" {
         ]
         Resource = [
           aws_s3_bucket.skills.arn,
-          "${aws_s3_bucket.skills.arn}/*"
+          "${aws_s3_bucket.skills.arn}/*",
+          "${aws_s3_bucket.artifacts.arn}/agent-office/*"
         ]
       },
       {
@@ -78,7 +87,7 @@ resource "aws_iam_role_policy" "agentcore_execution" {
   })
 }
 
-# ECS Task Execution Role (for LiteLLM and Langfuse)
+# ECS Task Execution Role for Langfuse and Agent Office
 resource "aws_iam_role" "ecs_task_execution" {
   name = "${local.name_prefix}-ecs-task-execution-role"
 
@@ -99,61 +108,6 @@ resource "aws_iam_role" "ecs_task_execution" {
 resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
   role       = aws_iam_role.ecs_task_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
-}
-
-# ECS Task Role (for LiteLLM)
-resource "aws_iam_role" "litellm_task" {
-  name = "${local.name_prefix}-litellm-task-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-
-  tags = local.common_tags
-}
-
-resource "aws_iam_role_policy" "litellm_task" {
-  name = "${local.name_prefix}-litellm-task-policy"
-  role = aws_iam_role.litellm_task.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "bedrock:InvokeModel",
-          "bedrock:InvokeModelWithResponseStream"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "secretsmanager:GetSecretValue"
-        ]
-        Resource = [
-          aws_secretsmanager_secret.litellm_api_key.arn
-        ]
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
 }
 
 # ECS Task Role (for Langfuse)
@@ -181,6 +135,17 @@ resource "aws_iam_role_policy" "langfuse_task" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+      {
+        # Self-hosted Langfuse evaluators use the ECS task role through its
+        # Bedrock default credential chain. This is limited to the one judge
+        # inference profile and its backing foundation model.
+        Effect = "Allow"
+        Action = ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"]
+        Resource = [
+          "arn:aws:bedrock:${var.aws_region}:278741241787:inference-profile/us.anthropic.claude-haiku-4-5-20251001-v1:0",
+          "arn:aws:bedrock:*::foundation-model/anthropic.claude-haiku-4-5-20251001-v1:0"
+        ]
+      },
       {
         Effect = "Allow"
         Action = [

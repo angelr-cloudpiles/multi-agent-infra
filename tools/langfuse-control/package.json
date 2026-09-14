@@ -1,0 +1,10 @@
+{
+  "name": "agent-office-langfuse-control",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@aws-sdk/client-secrets-manager": "3.1016.0",
+    "@langfuse/cli": "1.2.3",
+    "@modelcontextprotocol/sdk": "1.25.1"
+  }
+}

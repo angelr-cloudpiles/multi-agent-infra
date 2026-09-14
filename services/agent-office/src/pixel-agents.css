@@ -1,0 +1,25 @@
+/* Adapted from pixel-agents-hq/pixel-agents (MIT). See THIRD_PARTY_NOTICES.md. */
+.office-scene:has(.pixel-agents-office){display:grid;place-items:center;min-height:0;padding:0;background:#08111e;border:1px solid #304760;overflow:hidden}
+.pixel-agents-office{position:relative;width:min(100%,1000px);aspect-ratio:1.6/1;background:#080d14;overflow:hidden;isolation:isolate}
+.pixel-agents-floorplan{display:block;width:100%;height:100%;object-fit:cover;image-rendering:pixelated;image-rendering:crisp-edges;user-select:none}
+.pixel-agent-marker{--accent:#84d8ff;position:absolute;left:var(--station-x);top:var(--station-y);width:1px;height:1px;padding:0;border:0;background:transparent;overflow:visible;cursor:pointer;z-index:2;font:inherit}
+.pixel-agent-marker:focus-visible{outline:none}
+.pixel-agent-avatar{position:absolute;left:-15px;bottom:-18px;width:30px;height:58px;background-image:var(--portrait);background-size:210px 180px;background-repeat:no-repeat;background-position:0 0;image-rendering:pixelated;filter:drop-shadow(2px 3px 0 rgb(0 0 0/.34));pointer-events:none}
+.pixel-agent-marker.active .pixel-agent-avatar{animation:pixel-agents-walk .72s steps(1,end) infinite}
+.pixel-agent-marker.selected .pixel-agent-avatar,.pixel-agent-marker:focus-visible .pixel-agent-avatar{filter:drop-shadow(0 0 6px var(--accent)) drop-shadow(2px 3px 0 rgb(0 0 0/.34))}
+.pixel-agent-ring{position:absolute;left:-21px;top:13px;width:42px;height:13px;border:2px solid transparent;border-radius:50%;opacity:0;pointer-events:none}
+.pixel-agent-marker.selected .pixel-agent-ring,.pixel-agent-marker:focus-visible .pixel-agent-ring{border-color:var(--accent);opacity:1;animation:pixel-agents-ring 1.4s steps(2,end) infinite}
+.pixel-agent-signal{position:absolute;left:12px;top:-38px;display:grid;place-items:center;min-width:19px;height:19px;padding:0 3px;border:2px solid #111b2b;background:#192a42;color:#eaf3ff;font:700 11px/1 ui-monospace,SFMono-Regular,Menlo,monospace;box-shadow:2px 2px 0 rgb(0 0 0/.42);opacity:0;transform:translateY(3px);transition:opacity .15s,transform .15s;pointer-events:none}
+.pixel-agent-signal i{position:absolute;right:-4px;bottom:-4px;width:7px;height:7px;border:1px solid #111b2b;background:#6fcf97}
+.pixel-agent-marker.active .pixel-agent-signal{opacity:1;transform:translateY(0);animation:pixel-agents-bubble 1.2s steps(2,end) infinite}
+.pixel-agent-signal.error i{background:#eb6477}.pixel-agent-signal.waiting_for_tool i,.pixel-agent-signal.waiting_for_approval i{background:#e4b762}.pixel-agent-signal.reviewing i{background:#d984dc}
+.pixel-agent-name{position:absolute;left:50%;top:27px;transform:translateX(-50%);padding:3px 6px;border:1px solid #5e82ae;background:#0c1729;color:#f0f5ff;font:700 clamp(8px,1vw,11px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;white-space:nowrap;box-shadow:2px 2px 0 rgb(0 0 0/.4);pointer-events:none}
+.pixel-agent-marker.selected .pixel-agent-name,.pixel-agent-marker:focus-visible .pixel-agent-name{border-color:var(--accent);color:white}
+.pixel-agent-state{position:absolute;left:50%;bottom:43px;transform:translateX(-50%);padding:3px 5px;border:1px solid #45628a;background:#101d31;color:#ddecff;font:700 clamp(7px,.8vw,9px)/1 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap;pointer-events:none}
+.pixel-agent-marker.violet{--accent:#bca4ff}.pixel-agent-marker.mint{--accent:#70e4c2}.pixel-agent-marker.blue{--accent:#76b2ff}.pixel-agent-marker.rose{--accent:#ed9be7}.pixel-agent-marker.amber{--accent:#ffc66e}
+.pixel-agents-caption{position:absolute;right:10px;bottom:8px;padding:3px 5px;background:rgb(6 13 23/.72);color:#91a9c9;font:700 8px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.04em;pointer-events:none}
+@keyframes pixel-agents-walk{0%,100%{background-position:0 0;transform:translateY(0)}33%{background-position:-30px 0;transform:translateY(-1px)}66%{background-position:-60px 0;transform:translateY(0)}}
+@keyframes pixel-agents-ring{50%{transform:scale(1.14);opacity:.45}}
+@keyframes pixel-agents-bubble{50%{transform:translateY(-2px)}}
+@media (prefers-reduced-motion:reduce){.pixel-agent-avatar,.pixel-agent-marker.active .pixel-agent-signal,.pixel-agent-marker.selected .pixel-agent-ring{animation:none}}
+@media (max-width:760px){.pixel-agents-office{width:100%;aspect-ratio:1.42/1}.pixel-agent-state{display:none}.pixel-agent-signal{top:-31px}.pixel-agent-name{top:23px;padding:2px 4px}.pixel-agent-avatar{transform:scale(.85);transform-origin:bottom center}.pixel-agents-caption{display:none}}

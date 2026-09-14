@@ -1,10 +1,13 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { Activity, ArrowUpRight, Bot, ChevronDown, FolderKanban, ListTodo, LockKeyhole, MessageSquareText, PanelLeft, Play, Send, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import officeFloor from "./assets/office-floor.webp";
+import { Activity, ArrowUpRight, Bot, ChevronDown, FileText, FolderKanban, Image as ImageIcon, ListTodo, LockKeyhole, MessageSquareText, PanelLeft, Paperclip, Play, Send, Sparkles, ThumbsDown, ThumbsUp, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import "./styles.css";
 import "./login.css";
+import "./pixel-agents.css";
+import "./workspace-layout.css";
 
 const AGENTS = [
   { id: "orchestrator-agent", name: "Orchestrator", role: "Coordina el trabajo", color: "violet", home: [350, 285], skin: "#d79b73", hair: "#392d37", outfit: "#7859ae" },
@@ -12,6 +15,7 @@ const AGENTS = [
   { id: "code-agent", name: "Code", role: "Implementa cambios", color: "blue", home: [246, 429], skin: "#9f604b", hair: "#1e2535", outfit: "#426ca7" },
   { id: "review-agent", name: "Review", role: "Revisa calidad", color: "rose", home: [586, 382], skin: "#e2a07d", hair: "#703d54", outfit: "#b05f9d" },
   { id: "deploy-agent", name: "Deploy", role: "Entrega con control", color: "amber", home: [760, 424], skin: "#c17c58", hair: "#50352b", outfit: "#b87642" },
+  { id: "ui-design-agent", name: "UI Design", role: "Diseña experiencia e interfaz", color: "cyan", home: [670, 430], skin: "#c48763", hair: "#263043", outfit: "#438bb0" },
 ];
 
 const STATE_LABEL = {
@@ -19,9 +23,50 @@ const STATE_LABEL = {
   waiting_for_approval: "Esperando aprobación", reviewing: "Revisando", meeting: "En reunión", error: "Requiere atención", paused: "Pausado",
 };
 const STATE_EMOTE = { working: "⌨", reviewing: "⌕", meeting: "…", waiting_for_tool: "⌛", waiting_for_approval: "!", error: "×", queued: "↗" };
+// A station anchors the control box, while the sprite is drawn lower inside it.
+// Keep both active and idle anchors on clear floor, away from desks and seating.
+const IDLE_STATIONS = {
+  "orchestrator-agent": [13, 52],
+  "research-agent": [20, 53],
+  "code-agent": [40, 53],
+  "review-agent": [58, 52],
+  "deploy-agent": [86, 50],
+  "ui-design-agent": [72, 84],
+};
+const IDLE_PATROLS = {
+  "orchestrator-agent": [[13, 52], [17, 55], [13, 49]],
+  "research-agent": [[20, 53], [24, 51], [17, 55]],
+  "code-agent": [[40, 53], [45, 53], [39, 56]],
+  "review-agent": [[58, 52], [57, 45], [63, 53]],
+  "deploy-agent": [[86, 50], [83, 52], [88, 46]],
+  "ui-design-agent": [[72, 84], [65, 84], [76, 84]],
+};
+
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+function useColumnLayout() {
+  const [columns, setColumns] = useState(() => {
+    try { return { projects: 244, inspector: 324, chat: 390, ...JSON.parse(localStorage.getItem("agent-office-columns") || "{}") }; } catch { return { projects: 244, inspector: 324, chat: 390 }; }
+  });
+  useEffect(() => { localStorage.setItem("agent-office-columns", JSON.stringify(columns)); }, [columns]);
+  const startResize = useCallback((column, event) => {
+    event.preventDefault(); const originX = event.clientX; const origin = columns;
+    const move = (pointer) => {
+      const delta = pointer.clientX - originX;
+      setColumns((current) => ({ ...current, [column]: clamp(column === "projects" ? origin.projects + delta : origin[column] - delta, column === "projects" ? 190 : 250, column === "projects" ? 360 : 560) }));
+    };
+    const end = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", end); };
+    window.addEventListener("pointermove", move); window.addEventListener("pointerup", end);
+  }, [columns]);
+  return { columns, startResize };
+}
 
 async function request(path, options = {}) {
-  const response = await fetch(path, { ...options, headers: { "X-Requested-With": "AgentOffice", "Content-Type": "application/json", ...options.headers } });
+  const fetchOptions = { ...options, headers: { "X-Requested-With": "AgentOffice", "Content-Type": "application/json", ...options.headers } };
+  let response = await fetch(path, fetchOptions);
+  if (response.status === 401 && path !== "/auth/refresh") {
+    const refreshed = await fetch("/auth/refresh", { method: "POST", headers: { "X-Requested-With": "AgentOffice", "Content-Type": "application/json" } });
+    if (refreshed.ok) response = await fetch(path, fetchOptions);
+  }
   if (response.status === 401) throw new Error("AUTH_REQUIRED");
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(payload.error || "No se pudo completar la operación.");
@@ -29,6 +74,7 @@ async function request(path, options = {}) {
 }
 function statusFor(agent, snapshot) { return snapshot?.agents?.find((entry) => entry.agent_id === agent)?.state || "idle"; }
 
+/* Replaced by the Pixel Agents composition below.
 const PALETTE = { violet: "#8c7cff", mint: "#60e0c0", blue: "#5ca5f5", rose: "#dc85d6", amber: "#f0b25e" };
 function targetFor(agent, state) {
   if (state === "meeting") return [746, 183];
@@ -93,15 +139,113 @@ function PixelOfficeCanvas({ statuses, selected, onSelect }) {
   }, [statuses, selected, onSelect]);
   return <><canvas ref={canvasRef} className="pixel-canvas" style={{backgroundImage:`url(${officeFloor})`,backgroundPosition:"center",backgroundRepeat:"no-repeat",backgroundSize:"cover"}} aria-label="Oficina pixelada interactiva"/><nav className="sr-only" aria-label="Seleccionar agente">{AGENTS.map((agent) => <button type="button" key={agent.id} onClick={() => onSelect(agent.id)} aria-pressed={selected === agent.id}>{agent.name}: {STATE_LABEL[statuses[agent.id]]}</button>)}</nav></>;
 }
-const TASK_LABEL = { queued: "En cola", working: "En curso", completed: "Completada", waiting_for_approval: "Espera aprobación", approved: "Aprobada", rejected: "Rechazada", paused: "Pausada", error: "Requiere atención" };
+*/
+
+// Pixel Agents assets are used under the MIT license. See THIRD_PARTY_NOTICES.md.
+const PIXEL_AGENT_STATIONS = {
+  "orchestrator-agent": [12.5, 55],
+  "research-agent": [20, 50],
+  "code-agent": [39, 50],
+  "review-agent": [57, 46],
+  "deploy-agent": [86, 46],
+  "ui-design-agent": [70, 84],
+};
+
+const DELIVERY_ROUTES = {
+  "research-agent": [[20, 50]],
+  "code-agent": [[39, 50]],
+  "review-agent": [[48, 50], [57, 46]],
+  "ui-design-agent": [[48, 50], [53, 78], [70, 84]],
+};
+
+function pointAlong(points, progress) {
+  const segments = points.length - 1, position = Math.min(segments - .0001, Math.max(0, progress * segments));
+  const index = Math.floor(position), ratio = position - index, [fromX, fromY] = points[index], [toX, toY] = points[index + 1];
+  return [fromX + (toX - fromX) * ratio, fromY + (toY - fromY) * ratio];
+}
+
+function useDispatchCourier(events) {
+  const [courier, setCourier] = useState(null), seen = useRef(new Set()), pending = useRef([]), ready = useRef(false), timer = useRef(null);
+  useEffect(() => {
+    const dispatches = (events || []).filter(event => event.type === "delegation.dispatched" && event.agent_id === "orchestrator-agent" && DELIVERY_ROUTES[event.target_agent]).sort((a, b) => String(a.timestamp).localeCompare(String(b.timestamp)));
+    if (!ready.current) { dispatches.forEach(event => seen.current.add(event.event_id)); ready.current = true; return; }
+    const additions = dispatches.filter(event => !seen.current.has(event.event_id)); additions.forEach(event => seen.current.add(event.event_id)); pending.current.push(...additions);
+    if (timer.current || !pending.current.length) return;
+    const play = () => {
+      const event = pending.current.shift();
+      if (!event) { timer.current = null; return; }
+      const from = PIXEL_AGENT_STATIONS["orchestrator-agent"], route = [from, ...(DELIVERY_ROUTES[event.target_agent] || [])], started = performance.now(), duration = 2800;
+      const frame = (now) => {
+        const elapsed = Math.min(1, (now - started) / duration);
+        const outbound = elapsed < .44 ? elapsed / .44 : elapsed < .60 ? 1 : 1 - (elapsed - .60) / .40;
+        const [x, y] = pointAlong(route, outbound);
+        // The dispatch is performed by the Orchestrator itself. Keeping the
+        // moving state on the agent avoids rendering a detached duplicate
+        // character that can look like the sprite has split in two.
+        setCourier({ agent_id: event.agent_id, x, y, carrying: elapsed < .54, target: event.target_agent });
+        if (elapsed < 1) timer.current = requestAnimationFrame(frame);
+        else { setCourier(null); timer.current = setTimeout(play, 180); }
+      };
+      timer.current = requestAnimationFrame(frame);
+    };
+    play();
+  }, [events]);
+  useEffect(() => () => { if (typeof timer.current === "number") { cancelAnimationFrame(timer.current); clearTimeout(timer.current); } }, []);
+  return courier;
+}
+
+function useIdlePatrols(statuses) {
+  const [stations, setStations] = useState(IDLE_STATIONS), step = useRef(0);
+  const idleSignature = AGENTS.map(agent => `${agent.id}:${statuses[agent.id] === "idle"}`).join("|");
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return undefined;
+    const advance = () => {
+      step.current += 1;
+      setStations(current => Object.fromEntries(AGENTS.map((agent, index) => [agent.id, statuses[agent.id] === "idle" ? IDLE_PATROLS[agent.id][(step.current + index) % IDLE_PATROLS[agent.id].length] : current[agent.id]])));
+    };
+    const timer = window.setInterval(advance, 6800);
+    return () => window.clearInterval(timer);
+  }, [idleSignature]);
+  return stations;
+}
+
+function PixelAgentsOffice({ statuses, selected, onSelect, onConversation, onTask, onReviewAttention, courier }) {
+  const idleStations = useIdlePatrols(statuses);
+  return <>
+    <div className="pixel-agents-office" role="group" aria-label="Oficina pixelada interactiva">
+      <img className="pixel-agents-floorplan" src="/pixel-agents/office-empty.png" alt="Oficina pixelada vacía con escritorios, sala de reuniones y sala de descanso"/>
+      <span className="office-ambient-pixels" aria-hidden="true"><i/><i/><i/><i/></span>
+      {AGENTS.map((agent, index) => {
+        const state = statuses[agent.id]; const active = state !== "idle"; const dispatching = courier?.agent_id === agent.id; const [x, y] = dispatching ? [courier.x, courier.y] : active ? PIXEL_AGENT_STATIONS[agent.id] : idleStations[agent.id]; const attention = ["error", "paused", "waiting_for_tool", "waiting_for_approval"].includes(state);
+        return <div key={agent.id} className={`pixel-agent-control ${agent.color} ${active ? "active" : "idle"} ${dispatching ? "dispatching" : ""} ${attention ? "needs-attention" : ""} ${selected === agent.id ? "selected" : ""}`} style={{ "--station-x": `${x}%`, "--station-y": `${y}%`, "--portrait": `url(/pixel-agents/characters/char_${index}.png)` }}>
+          <button type="button" className={`pixel-agent-marker ${dispatching && courier.carrying ? "carrying" : ""}`} onClick={() => onSelect(agent.id)} aria-pressed={selected === agent.id} aria-label={`${agent.name}: ${dispatching ? `Llevando una tarea a ${shortAgent(courier.target)}` : STATE_LABEL[state]}`}>
+          <span className="pixel-agent-avatar"/>
+          <span className="pixel-agent-ring"/>
+          <span className={`pixel-agent-signal ${state}`}><i/>{attention ? "!" : active ? (STATE_EMOTE[state] || "•") : ""}</span>
+          {dispatching && courier.carrying && <span className="pixel-agent-parcel" aria-hidden="true"/>}
+          <span className="pixel-agent-name">{agent.name}</span>
+          <span className="pixel-agent-state">{active ? STATE_LABEL[state] : "Disponible"}</span>
+          </button>
+          {selected === agent.id && <div className="pixel-agent-actions" aria-label={`Acciones para ${agent.name}`}><button type="button" onClick={() => onConversation(agent.id)}>Conversar</button>{attention ? <button type="button" onClick={() => onReviewAttention(agent.id)}>Revisar atención</button> : <button type="button" onClick={() => onTask(agent.id)}>Asignar tarea</button>}</div>}
+        </div>;
+      })}
+      <span className="pixel-agents-caption">Oficina operativa · Pixel Agents</span>
+    </div>
+    <nav className="sr-only" aria-label="Seleccionar agente">{AGENTS.map((agent) => <button type="button" key={agent.id} onClick={() => onSelect(agent.id)} aria-pressed={selected === agent.id}>{agent.name}: {STATE_LABEL[statuses[agent.id]]}</button>)}</nav>
+  </>;
+}
+
+const TASK_LABEL = { queued: "En cola", working: "En curso", completed: "Completada", waiting_for_approval: "Espera aprobación", approved: "Aprobada", rejected: "Rechazada", assisted: "Continuada", paused: "Pausada", error: "Requiere atención" };
+const ASSISTABLE_TASK_STATUSES = new Set(["paused", "error", "waiting_for_approval"]);
 const shortAgent = (id) => AGENTS.find((agent) => agent.id === id)?.name || id;
 const taskLabel = (status) => TASK_LABEL[status] || status;
 
-function OfficeScene({ snapshot, selected, onSelect, connected, project }) {
+function OfficeScene({ snapshot, selected, onSelect, onConversation, onTask, onReviewAttention, connected, project }) {
   const statuses = Object.fromEntries(AGENTS.map((agent) => [agent.id, statusFor(agent.id, snapshot)]));
+  const courier = useDispatchCourier(snapshot.events);
   return <section className="office-panel">
     <div className="section-head"><div><span className="eyebrow">ESPACIO DE TRABAJO · {project?.environment || "PRODUCCIÓN"}</span><h1>{project?.display_name || "La oficina"}</h1><p>{project?.access_mode === "read_only_context" ? "Piloto con contexto de solo lectura." : "Los agentes se mueven cuando reciben trabajo."}</p></div><span className={`connection ${connected ? "online" : "locked"}`}><i/>{connected ? "En directo" : "Acceso requerido"}</span></div>
-    <div className="office-scene"><PixelOfficeCanvas statuses={statuses} selected={selected} onSelect={onSelect}/><div className="scene-key"><span><i className="key-working"/> Trabajando</span><span><i className="key-waiting"/> Espera</span><span><i className="key-idle"/> Disponible</span></div></div>
+    <div className="office-scene"><PixelAgentsOffice statuses={statuses} selected={selected} onSelect={onSelect} onConversation={onConversation} onTask={onTask} onReviewAttention={onReviewAttention} courier={courier}/><div className="scene-key"><span><i className="key-working"/> Trabajando</span><span><i className="key-waiting"/> Espera</span><span><i className="key-idle"/> Disponible</span></div></div>
   </section>;
 }
 
@@ -118,43 +262,99 @@ function ActivityFeed({ snapshot, me }) {
   </section>;
 }
 
-function ProjectRail({ projects, projectId, onChange, view, onView }) {
-  return <aside className="project-rail"><a className="brand" href="/"><span className="brand-mark"><Bot size={19}/></span><strong>Agent <em>Office</em></strong></a><nav className="main-nav" aria-label="Secciones"><button className={view === "office" ? "active" : ""} onClick={() => onView("office")}><PanelLeft size={18}/>Oficina</button><button className={view === "tasks" ? "active" : ""} onClick={() => onView("tasks")}><ListTodo size={18}/>Tareas</button><button className={view === "chat" ? "active" : ""} onClick={() => onView("chat")}><MessageSquareText size={18}/>Conversación</button></nav><div className="project-list"><span className="eyebrow">PROYECTOS</span>{projects.map((item) => <button key={item.project_id} className={item.project_id === projectId ? "active" : ""} onClick={() => onChange(item.project_id)}><FolderKanban size={16}/><span><strong>{item.display_name}</strong><small>{item.access_mode === "read_only_context" ? "Solo lectura" : item.environment}</small></span></button>)}</div><div className="rail-footer"><span className="presence"/>Agent Office online</div></aside>;
+function ProjectRail({ projects, projectId, onChange, view, onView, onConversation }) {
+  return <aside className="project-rail"><a className="brand" href="/"><span className="brand-mark"><Bot size={19}/></span><strong>Agent <em>Office</em></strong></a><nav className="main-nav" aria-label="Secciones"><button className={view === "office" ? "active" : ""} onClick={() => onView("office")}><PanelLeft size={18}/>Oficina</button><button className={view === "tasks" ? "active" : ""} onClick={() => onView("tasks")}><ListTodo size={18}/>Tareas</button><button onClick={onConversation}><MessageSquareText size={18}/>Conversación</button></nav><div className="project-list"><span className="eyebrow">PROYECTOS</span>{projects.map((item) => <button key={item.project_id} className={item.project_id === projectId ? "active" : ""} onClick={() => onChange(item.project_id)}><FolderKanban size={16}/><span><strong>{item.display_name}</strong><small>{item.access_mode === "read_only_context" ? "Solo lectura" : item.environment}</small></span></button>)}</div><div className="rail-footer"><span className="presence"/>Agent Office online</div></aside>;
 }
 
-function AgentInspector({ selectedAgent, selectedState, selectedRun, selectedEvent }) {
-  return <section className="inspector"><span className="eyebrow">AGENTE SELECCIONADO</span><div className="inspector-identity"><span className={`pixel-portrait ${selectedAgent.color}`}><i/><b/></span><div><h2>{selectedAgent.name}</h2><p>{selectedAgent.role}</p></div></div><div className="state-line"><span className={`state-pip ${selectedState}`}/>{STATE_LABEL[selectedState]}</div><dl><div><dt>Tarea actual</dt><dd>{selectedRun ? selectedRun.prompt.slice(0, 120) : "Sin tarea asignada"}</dd></div><div><dt>Último evento</dt><dd>{selectedEvent?.type || "—"}</dd></div><div><dt>Trazas</dt><dd>{selectedEvent?.trace_id ? <a href="https://langfuse.aiops.cloudpiles.net" target="_blank" rel="noreferrer">Abrir Langfuse <ArrowUpRight size={14}/></a> : "Sin trazas"}</dd></div></dl></section>;
+function AgentInspector({ selectedAgent, selectedState, selectedRun, selectedEvent, activity, onConversation, onReviewAttention }) {
+  const projects = activity?.projects || []; const attention=ASSISTABLE_TASK_STATUSES.has(selectedState) && activity?.active_run_id;
+  return <section className="inspector"><span className="eyebrow">AGENTE SELECCIONADO</span><div className="inspector-identity"><span className={`pixel-portrait ${selectedAgent.color}`}><i/><b/></span><div><h2>{selectedAgent.name}</h2><p>{selectedAgent.role}</p></div></div><div className="state-line"><span className={`state-pip ${selectedState}`}/>{STATE_LABEL[selectedState]}</div><dl><div><dt>Tarea actual</dt><dd>{activity?.task || selectedRun?.prompt?.slice(0, 120) || "Sin tarea asignada"}</dd></div><div><dt>Último evento</dt><dd>{activity?.event || selectedEvent?.type || "—"}</dd></div><div><dt>Trazas</dt><dd>{selectedEvent?.trace_id ? <a href="https://langfuse.aiops.cloudpiles.net" target="_blank" rel="noreferrer">Abrir Langfuse <ArrowUpRight size={14}/></a> : "Sin trazas"}</dd></div></dl>{attention&&<button className="agent-conversation" type="button" onClick={onReviewAttention}><MessageSquareText size={15}/>Revisar tarea que requiere atención</button>}<div className="agent-projects"><span>ACTIVIDAD ENTRE PROYECTOS</span>{projects.length ? projects.map(item=><button key={item.project_id} type="button" onClick={onConversation}><i className={item.state}/>{item.project_name}<small>{STATE_LABEL[item.state] || item.state}</small></button>) : <p>Sin actividad reciente.</p>}</div><button className="agent-conversation" type="button" onClick={onConversation}><MessageSquareText size={15}/>Interactuar con {selectedAgent.name}</button></section>;
 }
 
-function ChatPanel({ messages, agents, me, busy, onSend }) {
-  const [draft, setDraft] = useState(""); const [agent, setAgent] = useState(agents[0]?.id || "research-agent");
-  useEffect(() => { if (!agents.some((item) => item.id === agent)) setAgent(agents[0]?.id || "research-agent"); }, [agents, agent]);
-  async function submit(event) { event.preventDefault(); if (!draft.trim()) return; await onSend(draft, agent); setDraft(""); }
-  return <section className="chat-panel"><div className="section-head"><div><span className="eyebrow">CONVERSACIÓN DEL PROYECTO</span><h2>Pide y sigue el trabajo</h2></div><MessageSquareText size={19}/></div><div className="chat-history">{messages.length ? messages.map((item) => <article className={`chat-message ${item.role}`} key={item.message_id}><span>{item.role === "user" ? "Tú" : item.role === "agent" ? shortAgent(item.agent_id) : "Sistema"}</span><p>{item.content}</p></article>) : <div className="empty-state"><Sparkles size={20}/><p>Escribe el primer pedido para iniciar el hilo.</p></div>}</div><form className="chat-composer" onSubmit={submit}><textarea value={draft} onChange={(event) => setDraft(event.target.value)} disabled={!me || busy} placeholder="Ej.: revisa los riesgos de operación y crea un plan de validación…"/><div><select value={agent} onChange={(event) => setAgent(event.target.value)} disabled={!me || busy}>{agents.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><button className="primary" type="submit" disabled={!me || busy}><Send size={16}/>{busy ? "Enviando…" : "Enviar pedido"}</button></div>{!me && <p className="access-note"><LockKeyhole size={14}/>Inicia sesión para enviar pedidos.</p>}</form></section>;
+function ChatMarkdown({ content, streaming = false }) {
+  return <div className="markdown-content">
+    <ReactMarkdown
+      remarkPlugins={[remarkGfm]}
+      components={{
+        a: ({ href, children }) => <a href={href} target={href?.startsWith("http") ? "_blank" : undefined} rel={href?.startsWith("http") ? "noreferrer" : undefined}>{children}</a>,
+      }}
+    >
+      {content}
+    </ReactMarkdown>
+    {streaming && <b className="typing-cursor" aria-label="El agente está escribiendo"/>}
+  </div>;
 }
 
-function TaskDetail({ run, onApprove, canApprove, busy }) {
+function ChatRecoveryActions({ run, partialCount, isRootFailure, busy, onRetry, onAssist, onShowActivity }) {
+  if (!run || !ASSISTABLE_TASK_STATUSES.has(run.status)) return null;
+  const canRetry = isRootFailure && run.agent_id === "orchestrator-agent" && partialCount > 0;
+  return <div className="chat-recovery-actions"><p>{partialCount ? `Se conservaron ${partialCount} resultados de especialistas. Elegí cómo continuar esta tarea.` : "El agente necesita una indicación, un archivo o una decisión para continuar esta tarea."}</p><div>{canRetry && <button type="button" onClick={() => onRetry(run)} disabled={busy}>Reintentar síntesis</button>}{partialCount > 0 && <button type="button" onClick={onShowActivity}>Ver resultados disponibles</button>}<button type="button" onClick={() => onAssist(run)} disabled={busy}>Aportar información</button></div></div>;
+}
+
+function ChatPanel({ messages, runs, agents, me, busy, onSend, onUpload, onFeedback, onRetry, onAssist, project, inputRef, preferredAgent, assistanceFor, onCancelAssistance, conversationTasks, onNewTask, compact = false }) {
+  const [draft, setDraft] = useState(""); const [agent, setAgent] = useState("orchestrator-agent"); const [attachments, setAttachments] = useState([]); const [showActivity, setShowActivity] = useState(false);
+  const fileInputRef = useRef(null), historyRef = useRef(null), followTailRef = useRef(true);
+  const assistedAgent = assistanceFor?.agent_id || agent;
+  const taskId = conversationTasks[`${project?.project_id}:${assistedAgent}`] || null;
+  useEffect(() => { if (!agents.some((item) => item.id === agent)) setAgent(agents.find(item=>item.id === "orchestrator-agent")?.id || agents[0]?.id || "orchestrator-agent"); }, [agents, agent]);
+  useEffect(() => { if (preferredAgent && agents.some((item) => item.id === preferredAgent)) setAgent(preferredAgent); }, [preferredAgent, agents]);
+  useEffect(() => { setDraft(""); setAttachments([]); setShowActivity(false); }, [project?.project_id]);
+  useEffect(() => { setShowActivity(false); followTailRef.current = true; }, [assistanceFor?.run_id, assistedAgent]);
+  const activeTaskId = assistanceFor?.run_id || taskId;
+  const taskMessages = useMemo(() => activeTaskId ? messages.filter(item => item.task_id === activeTaskId || item.run_id === activeTaskId) : messages, [messages, activeTaskId]);
+  const threadMessages = useMemo(() => showActivity ? taskMessages : taskMessages.filter((item) => item.role !== "system" && item.agent_id === assistedAgent), [taskMessages, assistedAgent, showActivity]);
+  const runsById = useMemo(() => new Map(runs.map(run => [run.run_id, run])), [runs]);
+  const partialCountByRun = useMemo(() => messages.reduce((counts, item) => {
+    if (item.run_id && item.role === "agent" && !item.failed && !item.streaming && item.content && item.content !== "Redactando…") counts.set(item.run_id, (counts.get(item.run_id) || 0) + 1);
+    return counts;
+  }, new Map()), [messages]);
+  const messageRevision = useMemo(() => threadMessages.map((item) => `${item.message_id}:${item.content.length}:${item.streaming}`).join("|"), [threadMessages]);
+  useEffect(() => { const element=historyRef.current; if (element && followTailRef.current) element.scrollTop=element.scrollHeight; }, [messageRevision]);
+  const onHistoryScroll = () => { const element=historyRef.current; if (element) followTailRef.current=element.scrollHeight-element.scrollTop-element.clientHeight<36; };
+  async function addFiles(files) { if (!files?.length) return; const selected=[...files].slice(0,10-attachments.length); if(!selected.length)return; const pending=selected.map(file=>({file,id:crypto.randomUUID(),name:file.name,size:file.size,uploading:true}));setAttachments(current=>[...current,...pending]); try{const uploaded=await Promise.all(pending.map(async item=>({...await onUpload(item.file),localId:item.id})));setAttachments(current=>current.map(item=>uploaded.find(result=>result.localId===item.id)||item));}catch(error){setAttachments(current=>current.map(item=>pending.some(next=>next.id===item.id)?{...item,error:error.message,uploading:false}:item));} }
+  async function submit(event) { event.preventDefault(); if ((!draft.trim()&&!attachments.length)||attachments.some(item=>item.uploading||item.error)) return; followTailRef.current=true; await onSend(draft, assistedAgent, attachments.map(item=>item.attachment_id), { assistanceRunId: assistanceFor?.run_id, taskId: assistanceFor ? null : taskId }); setDraft(""); setAttachments([]); }
+  const onKeyDown = (event) => { if(event.key === "Enter" && !event.shiftKey){event.preventDefault();event.currentTarget.form?.requestSubmit();} };
+  return <section className={`chat-panel ${compact ? "chat-panel-rail" : ""}`}><div className="section-head"><div><span className="eyebrow">CONVERSACIÓN · {project?.display_name || "PROYECTO"}</span><h2>{assistanceFor ? `Asistiendo a ${shortAgent(assistanceFor.agent_id)}` : `Conversación con ${shortAgent(assistedAgent)}`}</h2>{!assistanceFor && <small className="task-context">{taskId ? `Seguimiento de tarea ${taskId.slice(0,8)}` : "El próximo mensaje inicia una tarea"}</small>}</div><div className="chat-head-actions"><button className="text-action chat-activity-toggle" type="button" onClick={()=>setShowActivity(value=>!value)}>{showActivity ? "Ocultar actividad" : "Ver actividad"}</button>{!assistanceFor && taskId && <button className="text-action chat-new-task" type="button" onClick={()=>onNewTask(assistedAgent)} disabled={busy}>Nueva tarea</button>}<MessageSquareText size={19}/></div></div>{assistanceFor&&<div className="assistance-banner"><span>Continuación de la tarea {assistanceFor.run_id.slice(0,8)} · {taskLabel(assistanceFor.status)}</span><button type="button" onClick={onCancelAssistance} disabled={busy}>Cancelar</button></div>}<div className="chat-history" ref={historyRef} onScroll={onHistoryScroll} aria-live="polite">{threadMessages.length ? threadMessages.map((item) => { const failedRun = item.failed ? runsById.get(item.run_id) || runsById.get(item.parent_task_id) : null; return <article className={`chat-message ${item.role} ${item.streaming ? "streaming" : ""} ${item.failed ? "failed" : ""}`} key={item.message_id}><span className="message-author">{item.role === "user" ? "Tú" : item.role === "agent" ? shortAgent(item.agent_id) : "Sistema"}</span><ChatMarkdown content={item.content} streaming={item.streaming}/>{failedRun && <ChatRecoveryActions run={failedRun} partialCount={partialCountByRun.get(item.run_id) || (failedRun?.results || []).length || 0} isRootFailure={failedRun?.run_id === item.run_id} busy={busy} onRetry={onRetry} onAssist={onAssist} onShowActivity={() => setShowActivity(true)}/>} {item.attachments?.length>0&&<div className="message-attachments">{item.attachments.map(file=><a key={file.attachment_id} href={`/api/attachments/${file.attachment_id}?project_id=${encodeURIComponent(project?.project_id || "")}`} target="_blank" rel="noreferrer">{file.content_type?.startsWith("image/")?<ImageIcon size={14}/>:<FileText size={14}/>}<span>{file.name}</span></a>)}</div>}{item.role === "agent" && !item.streaming && item.trace_id && <div className="message-feedback" aria-label="Valorar respuesta">{item.feedback === undefined ? <><span>¿Fue útil?</span><button type="button" onClick={()=>onFeedback(item.message_id,true)} disabled={busy} aria-label="Respuesta útil"><ThumbsUp size={14}/></button><button type="button" onClick={()=>onFeedback(item.message_id,false)} disabled={busy} aria-label="Respuesta no útil"><ThumbsDown size={14}/></button></> : <span className={item.feedback ? "positive" : "negative"}>{item.feedback ? "Marcada como útil" : "Marcada para mejorar"}</span>}</div>}</article>;}) : <div className="empty-state"><Sparkles size={20}/><p>{showActivity ? "Aún no hay actividad del proyecto." : `No hay mensajes con ${shortAgent(assistedAgent)} en este proyecto.`}</p></div>}</div><form className="chat-composer" onSubmit={submit}><input className="file-picker" type="file" multiple ref={fileInputRef} onChange={event=>{addFiles(event.target.files);event.target.value="";}}/><textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onKeyDown} onPaste={event=>{const files=[...event.clipboardData.files];if(files.length){event.preventDefault();addFiles(files);}}} disabled={!me || busy} placeholder={assistanceFor ? "Describe la información o decisión que necesita el agente…" : taskId ? "Continúa la tarea… Enter envía · Shift+Enter agrega una línea" : "Describe una nueva tarea… Enter envía · Shift+Enter agrega una línea"}/>{attachments.length>0&&<div className="attachment-queue">{attachments.map(item=><span className={item.error?"error":""} key={item.localId}>{item.uploading?"Subiendo ":""}{item.name}<button type="button" aria-label={`Quitar ${item.name}`} onClick={()=>setAttachments(current=>current.filter(file=>file.localId!==item.localId))}><X size={12}/></button></span>)}</div>}<div><button className="attach-button" type="button" onClick={()=>fileInputRef.current?.click()} disabled={!me||busy||attachments.length>=10}><Paperclip size={16}/>Adjuntar</button><select value={assistedAgent} onChange={(event) => setAgent(event.target.value)} disabled={!me || busy || Boolean(assistanceFor)}>{agents.map((item) => <option value={item.id} key={item.id}>{item.name}</option>)}</select><button className="primary" type="submit" disabled={!me || busy || attachments.some(item=>item.uploading||item.error)}><Send size={16}/>{busy ? "Enviando…" : assistanceFor ? "Continuar" : taskId ? "Continuar" : "Crear tarea"}</button></div>{!me && <p className="access-note"><LockKeyhole size={14}/>Inicia sesión para enviar pedidos.</p>}</form></section>;
+}
+function TaskDetail({ run, onApprove, onAssist, canApprove, canAssist, busy }) {
   if (!run) return <section className="task-detail"><span className="eyebrow">DETALLE DE TAREA</span><div className="empty-state"><ListTodo size={20}/><p>Selecciona una tarea para ver su progreso y resultados.</p></div></section>;
-  const result = run.results?.at(-1);
-  return <section className="task-detail"><span className="eyebrow">DETALLE DE TAREA</span><h2>{taskLabel(run.status)}</h2><p className="detail-prompt">{run.prompt}</p><dl><div><dt>Asignada a</dt><dd>{shortAgent(run.agent_id)}</dd></div><div><dt>Creada</dt><dd>{new Date(run.created_at).toLocaleString("es-ES")}</dd></div></dl>{result && <div className="agent-result"><span>{shortAgent(result.agent_id)}</span><p>{result.output}</p></div>}{run.status === "waiting_for_approval" && canApprove && <div className="approval-actions"><button onClick={() => onApprove(run.run_id, "reject")} disabled={busy}>Rechazar</button><button className="primary" onClick={() => onApprove(run.run_id, "approve")} disabled={busy}>Aprobar</button></div>}</section>;
+  const result = run.results?.at(-1); const requiresAssistance=ASSISTABLE_TASK_STATUSES.has(run.status);
+  return <section className="task-detail"><span className="eyebrow">DETALLE DE TAREA</span><h2>{taskLabel(run.status)}</h2><p className="detail-prompt">{run.prompt}</p><dl><div><dt>Asignada a</dt><dd>{shortAgent(run.agent_id)}</dd></div><div><dt>Creada</dt><dd>{new Date(run.created_at).toLocaleString("es-ES")}</dd></div>{run.error_code&&<div><dt>Motivo</dt><dd>{run.error_code}</dd></div>}</dl>{result && <div className="agent-result"><span>{shortAgent(result.agent_id)}</span><p>{result.output}</p></div>}{requiresAssistance&&canAssist&&<div className="assistance-actions"><p>El agente necesita una decisión, un dato o una corrección para continuar.</p><button className="primary" onClick={() => onAssist(run)} disabled={busy}><MessageSquareText size={15}/>Asistir al agente</button></div>}{run.status === "waiting_for_approval" && canApprove && <div className="approval-actions"><button onClick={() => onApprove(run.run_id, "reject")} disabled={busy}>Rechazar</button><button className="primary" onClick={() => onApprove(run.run_id, "approve")} disabled={busy}>Aprobar</button></div>}</section>;
 }
-
 function LoginScreen({ checking = false }) {
   return <main className="login-screen"><section className="login-card"><div className="login-brand"><span className="brand-mark"><Bot size={21}/></span><strong>Agent <em>Office</em></strong></div><span className="eyebrow">ACCESO PRIVADO</span><h1>Tu oficina de agentes.</h1><p>Inicia sesión con tu cuenta corporativa para acceder a los proyectos, tareas y conversaciones.</p><a className="login-action" href="/auth/login">Entrar con Microsoft <ArrowUpRight size={17}/></a>{checking && <span className="login-check">Verificando sesión segura…</span>}<small><LockKeyhole size={13}/> Acceso protegido por Entra ID</small></section></main>;
 }
 
 function App() {
-  const [snapshot, setSnapshot] = useState({ agents: [], events: [], runs: [] }); const [messages, setMessages] = useState([]); const [config, setConfig] = useState({ projects: [], default_project_id: "multi-agent" }); const [projectId, setProjectId] = useState("multi-agent"); const [me, setMe] = useState(null); const [authState, setAuthState] = useState("checking"); const [selected, setSelected] = useState("research-agent"); const [selectedTask, setSelectedTask] = useState(null); const [view, setView] = useState("office"); const [busy, setBusy] = useState(false); const [message, setMessage] = useState("");
-  const project = config.projects.find((item) => item.project_id === projectId); const availableAgents = AGENTS.filter((item) => !project || project.allowed_agents.includes(item.id)); const runs = snapshot.runs || [];
-  const refresh = async () => { try { const [latest, chat] = await Promise.all([request(`/api/snapshot?project_id=${encodeURIComponent(projectId)}`), request(`/api/chat?project_id=${encodeURIComponent(projectId)}`)]); setSnapshot({ agents: latest.agents || [], events: latest.events || [], runs: latest.runs || [] }); setMessages(chat.messages || []); } catch (error) { if (error.message === "AUTH_REQUIRED") { setMe(null); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setAuthState("anonymous"); } else setMessage(error.message); } };
-  useEffect(() => { let current = true; (async () => { try { const identity = await request("/api/me"), next = await request("/api/config"); if (!current) return; setMe(identity); setConfig(next); setProjectId(next.default_project_id); setAuthState("authenticated"); } catch (error) { if (!current) return; setMe(null); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setAuthState("anonymous"); if (error.message !== "AUTH_REQUIRED") setMessage(error.message); } })(); return () => { current = false; }; }, []);
-  useEffect(() => { if (authState !== "authenticated") return undefined; refresh(); const id = setInterval(refresh, 30000); return () => clearInterval(id); }, [projectId, authState]);
-  useEffect(() => { if (availableAgents.length && !availableAgents.some((item) => item.id === selected)) setSelected(availableAgents[0].id); }, [projectId, config]);
+  const [snapshot, setSnapshot] = useState({ agents: [], events: [], runs: [] }); const [messages, setMessages] = useState([]); const [focusedTaskMessages, setFocusedTaskMessages] = useState([]); const [assistanceFor, setAssistanceFor] = useState(null); const [conversationTasks, setConversationTasks] = useState(() => { try { return JSON.parse(sessionStorage.getItem("agent-office-conversation-tasks") || "{}"); } catch { return {}; } }); const [config, setConfig] = useState({ projects: [], default_project_id: "multi-agent" }); const [projectId, setProjectId] = useState("multi-agent"); const [me, setMe] = useState(null); const [authState, setAuthState] = useState("checking"); const [selected, setSelected] = useState("orchestrator-agent"); const [agentActivity, setAgentActivity] = useState({}); const [selectedTask, setSelectedTask] = useState(null); const [view, setView] = useState("office"); const [busy, setBusy] = useState(false); const [message, setMessage] = useState(""); const chatInputRef = useRef(null); const { columns, startResize } = useColumnLayout();
+  const configuredProjects = Array.isArray(config?.projects) ? config.projects : [];
+  const project = configuredProjects.find((item) => item.project_id === projectId); const availableAgents = AGENTS.filter((item) => !project || (Array.isArray(project.allowed_agents) && project.allowed_agents.includes(item.id))); const runs = snapshot.runs || [];
+  const refresh = async () => { try { const [latest, chat, activity] = await Promise.all([request(`/api/snapshot?project_id=${encodeURIComponent(projectId)}`), request(`/api/chat?project_id=${encodeURIComponent(projectId)}`), request("/api/agents/activity")]); setSnapshot({ agents: latest.agents || [], events: latest.events || [], runs: latest.runs || [] }); setMessages(chat.messages || []); if(assistanceFor?.run_id)setFocusedTaskMessages(current=>{const merged=new Map(current.map(item=>[item.message_id,item]));for(const item of chat.messages||[])if(item.task_id===assistanceFor.run_id)merged.set(item.message_id,item);return [...merged.values()].sort((a,b)=>String(a.created_at).localeCompare(String(b.created_at)));}); setAgentActivity(activity.agents || {}); } catch (error) { if (error.message === "AUTH_REQUIRED") { setMe(null); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setFocusedTaskMessages([]); setAuthState("anonymous"); } else setMessage(error.message); } };
+  useEffect(() => { let current = true; (async () => { try { const identity = await request("/api/me"), next = await request("/api/config"); if (!current) return; const projects = Array.isArray(next?.projects) ? next.projects : []; if (!projects.length) throw new Error("La configuración de proyectos no está disponible."); const defaultProjectId = projects.some((item) => item.project_id === next.default_project_id) ? next.default_project_id : projects[0].project_id; setMe(identity); setConfig({ ...next, projects, default_project_id: defaultProjectId }); setProjectId(defaultProjectId); setAuthState("authenticated"); } catch (error) { if (!current) return; setMe(null); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setAuthState("anonymous"); if (error.message !== "AUTH_REQUIRED") setMessage(error.message); } })(); return () => { current = false; }; }, []);
+  useEffect(() => { if (authState !== "authenticated") return undefined; refresh(); const id = setInterval(refresh, 1500); return () => clearInterval(id); }, [projectId, authState, assistanceFor?.run_id]);
+  useEffect(() => { sessionStorage.setItem("agent-office-conversation-tasks", JSON.stringify(conversationTasks)); }, [conversationTasks]);
   if (authState !== "authenticated" || !me) return <LoginScreen checking={authState === "checking"}/>;
-  const selectedAgent = AGENTS.find((item) => item.id === selected) || AGENTS[0]; const selectedState = statusFor(selected, snapshot); const selectedEvent = snapshot.events.find((item) => item.agent_id === selected); const selectedRun = runs.find((item) => item.agent_id === selected && ["queued", "working", "waiting_for_approval"].includes(item.status)); const activeTask = runs.find((item) => item.run_id === selectedTask?.run_id) || selectedTask;
-  async function sendMessage(content, agentId) { setBusy(true); setMessage(""); try { const run = await request("/api/chat", { method: "POST", body: JSON.stringify({ message: content, agent_id: agentId, project_id: projectId }) }); setMessage(`Tarea ${run.run_id.slice(0, 8)} encolada.`); setView("tasks"); await refresh(); } catch (error) { setMessage(error.message === "AUTH_REQUIRED" ? "Inicia sesión antes de enviar un pedido." : error.message); } finally { setBusy(false); } }
+  const selectedAgent = AGENTS.find((item) => item.id === selected) || AGENTS[0]; const selectedActivity=agentActivity[selected]; const selectedState = selectedActivity?.state || statusFor(selected, snapshot); const selectedEvent = snapshot.events.find((item) => item.agent_id === selected); const selectedRun = runs.find((item) => item.agent_id === selected && ["queued", "working", "waiting_for_approval", "paused", "error"].includes(item.status)); const activeTask = runs.find((item) => item.run_id === selectedTask?.run_id) || selectedTask; const officeStates=Object.fromEntries(AGENTS.map(agent=>[agent.id,agentActivity[agent.id]?.state||statusFor(agent.id,snapshot)]));
+  async function uploadAttachment(file) { const response=await fetch(`/api/uploads?project_id=${encodeURIComponent(projectId)}`,{method:"PUT",headers:{"X-Requested-With":"AgentOffice","X-File-Name":encodeURIComponent(file.name),"Content-Type":file.type||"application/octet-stream"},body:file});const payload=await response.json().catch(()=>({}));if(!response.ok)throw new Error(payload.error||"No se pudo adjuntar el archivo.");return payload.attachment; }
+  async function sendMessage(content, agentId, attachments=[], options={}) { const {assistanceRunId=null,taskId=null}=options; setBusy(true); setMessage(""); try { const route=assistanceRunId?`/api/runs/${assistanceRunId}/assist?project_id=${encodeURIComponent(projectId)}`:taskId?`/api/tasks/${taskId}/messages?project_id=${encodeURIComponent(projectId)}`:"/api/chat"; const body=assistanceRunId?{message:content,attachments}:taskId?{message:content,attachments}:{message:content,agent_id:agentId,project_id:projectId,attachments}; const run = await request(route, { method: "POST", body: JSON.stringify(body) }); const activeTaskId=run.task_id || taskId || run.run_id; setConversationTasks(current=>({...current,[`${projectId}:${agentId}`]:activeTaskId})); setAssistanceFor(null); setMessage(assistanceRunId?`Continuación ${run.run_id.slice(0, 8)} encolada.`:taskId?`Seguimiento de la tarea ${activeTaskId.slice(0, 8)} encolado.`:`Tarea ${activeTaskId.slice(0, 8)} creada.`); await refresh(); } catch (error) { setMessage(error.message === "AUTH_REQUIRED" ? "Inicia sesión antes de enviar un pedido." : error.message); } finally { setBusy(false); } }
+  async function retrySynthesis(run) { setBusy(true); setMessage(""); try { const result=await request(`/api/runs/${run.run_id}/retry-synthesis?project_id=${encodeURIComponent(projectId)}`,{method:"POST",body:"{}"}); setConversationTasks(current=>({...current,[`${projectId}:${run.agent_id}`]:result.task_id||run.run_id})); setMessage("Síntesis reencolada con los resultados preservados."); await refresh(); } catch(error) { setMessage(error.message); } finally { setBusy(false); } }
+  function startNewTask(agentId) { setConversationTasks(current=>{const next={...current};delete next[`${projectId}:${agentId}`];return next;}); setAssistanceFor(null); setMessage("El próximo mensaje creará una tarea nueva."); requestAnimationFrame(() => chatInputRef.current?.focus()); }
   async function approve(runId, decision) { setBusy(true); try { const result = await request(`/api/runs/${runId}/approval?project_id=${encodeURIComponent(projectId)}`, { method: "POST", body: JSON.stringify({ decision }) }); setMessage(result.message); await refresh(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
-  function changeProject(nextProject) { setProjectId(nextProject); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setSelectedTask(null); }
-  return <main className="app-shell"><ProjectRail projects={config.projects} projectId={projectId} onChange={changeProject} view={view} onView={setView}/><section className="workbench"><header className="topbar"><div><span className="eyebrow">OPERACIONES</span><strong>{view === "office" ? "La oficina" : view === "tasks" ? "Tareas del proyecto" : "Conversación"}</strong></div><div className="top-meta"><span className="environment">{project?.environment || "PRODUCCIÓN"}</span>{me ? <button className="logout" onClick={async () => { const result = await request("/auth/logout", { method: "POST", body: "{}" }); location.assign(result.url); }}>Salir</button> : <a className="login" href="/auth/login">Entrar con Microsoft <ArrowUpRight size={15}/></a>}</div></header><div className="main-content">{view === "office" && <><OfficeScene snapshot={snapshot} selected={selected} onSelect={setSelected} connected={Boolean(me)} project={project}/><section className="tasks-preview"><div className="section-head compact-head"><div><span className="eyebrow">LISTA DE TAREAS</span><h2>En seguimiento</h2></div><button className="text-action" onClick={() => setView("tasks")}>Ver tareas <ArrowUpRight size={15}/></button></div><TaskList runs={runs} selectedRun={activeTask} onSelect={setSelectedTask} compact/></section><ActivityFeed snapshot={snapshot} me={me}/></>}{view === "tasks" && <section className="tasks-page"><div className="section-head"><div><span className="eyebrow">LISTA DE TAREAS</span><h1>Trabajo del proyecto</h1><p>Selecciona una tarea para seguir sus resultados.</p></div><button className="primary" onClick={() => setView("chat")}><Play size={16}/>Nuevo pedido</button></div><TaskList runs={runs} selectedRun={activeTask} onSelect={setSelectedTask}/></section>}{view === "chat" && <ChatPanel messages={messages} agents={availableAgents} me={me} busy={busy} onSend={sendMessage}/>}</div>{message && <p className="toast"><Activity size={15}/>{message}</p>}</section><aside className="detail-column"><AgentInspector selectedAgent={selectedAgent} selectedState={selectedState} selectedRun={selectedRun} selectedEvent={selectedEvent}/><TaskDetail run={activeTask} onApprove={approve} canApprove={me?.canApprove} busy={busy}/>{project?.access_mode === "read_only_context" && <section className="scope-card"><LockKeyhole size={17}/><div><strong>Contexto de solo lectura</strong><p>Este piloto no puede cambiar AWS, CI/CD ni el repositorio.</p></div></section>}</aside></main>;
+  async function submitFeedback(messageId, positive) { setBusy(true); setMessage(""); try { await request(`/api/chat/${messageId}/feedback?project_id=${encodeURIComponent(projectId)}`, { method: "POST", body: JSON.stringify({ positive }) }); setMessage(positive ? "Feedback positivo registrado." : "Feedback registrado para revisión."); await refresh(); } catch (error) { setMessage(error.message); } finally { setBusy(false); } }
+  function changeProject(nextProject) { setProjectId(nextProject); setSnapshot({ agents: [], events: [], runs: [] }); setMessages([]); setFocusedTaskMessages([]); setSelectedTask(null); setAssistanceFor(null); }
+  function openConversation(agentId = selected) { if (agentId) { setSelected(agentId); const targetProject=Array.isArray(project?.allowed_agents)&&project.allowed_agents.includes(agentId)?projectId:agentActivity[agentId]?.active_project_id||configuredProjects.find(item=>Array.isArray(item.allowed_agents)&&item.allowed_agents.includes(agentId))?.project_id;if(targetProject&&targetProject!==projectId)changeProject(targetProject); } requestAnimationFrame(() => chatInputRef.current?.focus()); }
+  function startTaskFor(agentId) { openConversation(agentId); setMessage(`${shortAgent(agentId)} está seleccionado para el próximo pedido.`); }
+  async function startAssistance(run) { setSelected(run.agent_id); setSelectedTask(run); setAssistanceFor(run); try { const taskChat=await request(`/api/tasks/${run.run_id}/chat?project_id=${encodeURIComponent(projectId)}`); setFocusedTaskMessages(taskChat.messages||[]); } catch(error) { setMessage(error.message); } requestAnimationFrame(() => chatInputRef.current?.focus()); }
+  async function reviewAttention(agentId) { const activity=agentActivity[agentId]; if(!activity?.active_task_id || !activity.active_project_id)return openConversation(agentId); setBusy(true); setMessage(""); try { const targetProject=activity.active_project_id; const [latest,chat,updatedActivity,taskChat]=await Promise.all([request(`/api/snapshot?project_id=${encodeURIComponent(targetProject)}`),request(`/api/chat?project_id=${encodeURIComponent(targetProject)}`),request("/api/agents/activity"),request(`/api/tasks/${activity.active_task_id}/chat?project_id=${encodeURIComponent(targetProject)}`)]); const run=(latest.runs||[]).find(item=>item.run_id===activity.active_task_id); setProjectId(targetProject); setSnapshot({agents:latest.agents||[],events:latest.events||[],runs:latest.runs||[]}); setMessages(chat.messages||[]); setFocusedTaskMessages(taskChat.messages||[]); setAgentActivity(updatedActivity.agents||{}); setSelected(agentId); setSelectedTask(run||null); setAssistanceFor(run||null); if(run)requestAnimationFrame(() => chatInputRef.current?.focus()); else setMessage("La tarea ya no requiere atención."); } catch(error) { setMessage(error.message); } finally { setBusy(false); } }
+  const gridStyle = { gridTemplateColumns: `${columns.projects}px 8px minmax(420px, 1fr) 8px ${columns.inspector}px 8px ${columns.chat}px` };
+  return <main className="app-shell resizable-shell" style={gridStyle}>
+    <ProjectRail projects={configuredProjects} projectId={projectId} onChange={changeProject} view={view} onView={setView} onConversation={() => openConversation()}/>
+    <div className="column-resizer" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho de proyectos" onPointerDown={(event) => startResize("projects", event)}/>
+    <section className="workbench"><header className="topbar"><div><span className="eyebrow">OPERACIONES</span><strong>{view === "office" ? "La oficina" : "Tareas del proyecto"}</strong></div><div className="top-meta"><span className="environment">{project?.environment || "PRODUCCIÓN"}</span><button className="logout" onClick={async () => { const result = await request("/auth/logout", { method: "POST", body: "{}" }); location.assign(result.url); }}>Salir</button></div></header><div className="main-content">{view === "office" && <><OfficeScene snapshot={{...snapshot,agents:AGENTS.map(agent=>({agent_id:agent.id,state:officeStates[agent.id]}))}} selected={selected} onSelect={setSelected} onConversation={openConversation} onTask={startTaskFor} onReviewAttention={reviewAttention} connected={Boolean(me)} project={project}/><section className="tasks-preview"><div className="section-head compact-head"><div><span className="eyebrow">LISTA DE TAREAS</span><h2>En seguimiento</h2></div><button className="text-action" onClick={() => setView("tasks")}>Ver tareas <ArrowUpRight size={15}/></button></div><TaskList runs={runs} selectedRun={activeTask} onSelect={setSelectedTask} compact/></section><ActivityFeed snapshot={snapshot} me={me}/></>}{view === "tasks" && <section className="tasks-page"><div className="section-head"><div><span className="eyebrow">LISTA DE TAREAS</span><h1>Trabajo del proyecto</h1><p>Selecciona una tarea para seguir sus resultados.</p></div><button className="primary" onClick={() => openConversation()}><Play size={16}/>Nuevo pedido</button></div><TaskList runs={runs} selectedRun={activeTask} onSelect={setSelectedTask}/></section>}</div>{message && <p className="toast"><Activity size={15}/>{message}</p>}</section>
+    <div className="column-resizer" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho del detalle" onPointerDown={(event) => startResize("inspector", event)}/>
+    <aside className="detail-column"><AgentInspector selectedAgent={selectedAgent} selectedState={selectedState} selectedRun={selectedRun} selectedEvent={selectedEvent} activity={selectedActivity} onConversation={()=>openConversation(selected)} onReviewAttention={()=>reviewAttention(selected)}/><TaskDetail run={activeTask} onApprove={approve} onAssist={startAssistance} canApprove={me?.canApprove} canAssist={Boolean(me?.sub)} busy={busy}/>{project?.access_mode === "read_only_context" && <section className="scope-card"><LockKeyhole size={17}/><div><strong>Contexto de solo lectura</strong><p>Este piloto no puede cambiar AWS, CI/CD ni el repositorio.</p></div></section>}</aside>
+    <div className="column-resizer" role="separator" aria-orientation="vertical" aria-label="Cambiar ancho de conversación" onPointerDown={(event) => startResize("chat", event)}/>
+    <aside className="conversation-column"><ChatPanel messages={assistanceFor ? focusedTaskMessages : messages} runs={runs} agents={availableAgents} me={me} busy={busy} onSend={sendMessage} onUpload={uploadAttachment} onFeedback={submitFeedback} onRetry={retrySynthesis} onAssist={startAssistance} project={project} inputRef={chatInputRef} preferredAgent={selected} assistanceFor={assistanceFor} onCancelAssistance={() => { setAssistanceFor(null); setFocusedTaskMessages([]); }} conversationTasks={conversationTasks} onNewTask={startNewTask} compact/></aside>
+  </main>;
 }
 createRoot(document.getElementById("root")).render(<StrictMode><App /></StrictMode>);

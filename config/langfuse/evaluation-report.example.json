@@ -1,0 +1,11 @@
+{
+  "project_id": "tattoo-studio",
+  "prompt_name": "agents.orchestrator-agent.system",
+  "version": 2,
+  "dataset_items": 4,
+  "task_success_rate": 1,
+  "response_quality": 0.9,
+  "evidence_coverage": 0.9,
+  "requires_intervention_rate": 0,
+  "safety_review": "pass"
+}

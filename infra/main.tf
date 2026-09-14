@@ -18,6 +18,7 @@ terraform {
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "multi-agent-terraform-locks"
+    profile        = "aiops-aws"
   }
 }
 
@@ -91,12 +92,6 @@ variable "domain_name" {
   description = "Custom domain name"
   type        = string
   default     = "aiops.cloudpiles.net"
-}
-
-variable "litellm_master_key" {
-  description = "Master key for LiteLLM"
-  type        = string
-  sensitive   = true
 }
 
 variable "langfuse_secret_key" {

@@ -1,4 +1,4 @@
-# ElastiCache Redis for LiteLLM
+# ElastiCache Redis for Langfuse queues and cache
 
 # Redis Subnet Group
 resource "aws_elasticache_subnet_group" "main" {
@@ -8,7 +8,7 @@ resource "aws_elasticache_subnet_group" "main" {
   tags = local.common_tags
 }
 
-resource "aws_elasticache_parameter_group" "litellm" {
+resource "aws_elasticache_parameter_group" "langfuse" {
   name   = "${local.name_prefix}-redis7"
   family = "redis7"
 
@@ -21,16 +21,26 @@ resource "aws_elasticache_parameter_group" "litellm" {
 }
 
 # Redis Cluster
-resource "aws_elasticache_cluster" "litellm" {
+resource "aws_elasticache_cluster" "langfuse" {
   cluster_id           = "${local.name_prefix}-redis"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
-  parameter_group_name = aws_elasticache_parameter_group.litellm.name
+  parameter_group_name = aws_elasticache_parameter_group.langfuse.name
   engine_version       = "7.0"
   port                 = 6379
   subnet_group_name    = aws_elasticache_subnet_group.main.name
   security_group_ids   = [aws_security_group.elasticache.id]
 
   tags = local.common_tags
+}
+
+moved {
+  from = aws_elasticache_parameter_group.litellm
+  to   = aws_elasticache_parameter_group.langfuse
+}
+
+moved {
+  from = aws_elasticache_cluster.litellm
+  to   = aws_elasticache_cluster.langfuse
 }

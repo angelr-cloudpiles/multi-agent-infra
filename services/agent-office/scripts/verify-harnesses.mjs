@@ -4,7 +4,9 @@ import {BedrockAgentCoreClient, InvokeHarnessCommand} from '@aws-sdk/client-bedr
 
 const root = new URL('../', import.meta.url);
 const harnesses = JSON.parse(fs.readFileSync(new URL('harnesses.json', root)));
-const policy = JSON.parse(fs.readFileSync(new URL('model-policy.json', root)));
+const catalog = JSON.parse(fs.readFileSync(new URL('model-catalog.json', root)));
+const profiles = JSON.parse(fs.readFileSync(new URL('agent-profiles.json', root)));
+const policy = {aliases:Object.fromEntries(Object.entries(catalog.model_groups).map(([name, model]) => [name, model.model_id])),agents:Object.fromEntries(Object.entries(profiles.agents).map(([id, profile]) => [id, {alias:profile.default_model}]))};
 const client = new BedrockAgentCoreClient({region: 'us-east-1', maxAttempts: 2});
 
 const selectedAgent = process.env.AGENT_ID;

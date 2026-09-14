@@ -1,6 +1,40 @@
 {
-  "name":"agent-office","version":"1.0.0","private":true,"type":"module",
-  "scripts":{"dev":"vite --host 127.0.0.1","build":"vite build","start":"node server/index.mjs","test":"node --test server/*.test.mjs","verify:harnesses":"node scripts/verify-harnesses.mjs"},
-  "dependencies":{"express":"^5.1.0","helmet":"^8.1.0","aws-jwt-verify":"^5.1.0","@aws-sdk/client-dynamodb":"latest","@aws-sdk/lib-dynamodb":"latest","@aws-sdk/client-ecs":"latest","@aws-sdk/client-bedrock-agentcore":"latest","@aws-sdk/client-bedrock-agentcore-control":"latest","@aws-sdk/client-secrets-manager":"latest","@aws-sdk/client-sqs":"latest","react":"^19.1.0","react-dom":"^19.1.0","lucide-react":"^0.577.0"},
-  "devDependencies":{"@vitejs/plugin-react":"^5.0.4","vite":"^7.1.0"}
+  "name": "agent-office",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "start": "node server/index.mjs",
+    "test": "node --test server/*.test.mjs",
+    "verify:harnesses": "node scripts/verify-harnesses.mjs",
+    "sync:tattoo-context": "node ../../scripts/sync-tattoo-context.mjs"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-agentcore": "latest",
+    "@aws-sdk/client-bedrock-agentcore-control": "latest",
+    "@aws-sdk/client-dynamodb": "latest",
+    "@aws-sdk/client-ecs": "latest",
+    "@aws-sdk/client-s3": "latest",
+    "@aws-sdk/client-secrets-manager": "latest",
+    "@aws-sdk/client-sqs": "latest",
+    "@aws-sdk/lib-dynamodb": "latest",
+    "@langfuse/otel": "^5.11.1",
+    "@langfuse/tracing": "^5.11.1",
+    "@opentelemetry/context-async-hooks": "^2.11.0",
+    "@opentelemetry/sdk-node": "^0.222.0",
+    "aws-jwt-verify": "^5.1.0",
+    "express": "^5.1.0",
+    "helmet": "^8.1.0",
+    "lucide-react": "^0.577.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "vite": "^7.1.0"
+  }
 }

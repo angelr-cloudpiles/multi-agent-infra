@@ -6,6 +6,7 @@ const origin=process.env.PUBLIC_URL || 'https://aiops.cloudpiles.net';
 const access=CognitoJwtVerifier.create({userPoolId:pool,tokenUse:'access',clientId:client});
 const identity=CognitoJwtVerifier.create({userPoolId:pool,tokenUse:'id',clientId:client});
 const cookieOpts={httpOnly:true,secure:true,sameSite:'lax',path:'/'};
+const refreshCookieOpts={...cookieOpts,maxAge:30*24*60*60*1000};
 function cookies(req){return Object.fromEntries((req.headers.cookie || '').split(';').map(x=>x.trim().split(/=(.*)/s)).filter(x=>x[0]));}
 function sign(s){return crypto.createHmac('sha256',process.env.AUTH_SIGNING_KEY).update(s).digest('base64url');}
 export function authRoutes(app){
@@ -29,10 +30,24 @@ export function authRoutes(app){
    if(claims.nonce!==flow.nonce)throw new Error('Invalid nonce');
    await access.verify(token.access_token);
    res.cookie('__Host-office-access',token.access_token,{...cookieOpts,maxAge:Math.min(token.expires_in,3600)*1000});
+   if(token.refresh_token)res.cookie('__Host-office-refresh',token.refresh_token,refreshCookieOpts);
    res.redirect('/');
   }catch{res.status(401).send('No se pudo completar el acceso. Vuelve a iniciar sesión.');}
  });
- app.post('/auth/logout',(req,res)=>{if(req.headers.origin!==origin)return res.sendStatus(403);res.clearCookie('__Host-office-access',cookieOpts);res.json({url:domain+'/logout?'+new URLSearchParams({client_id:client,logout_uri:origin+'/'})});});
+ app.post('/auth/refresh',async(req,res)=>{
+  if(req.headers.origin!==origin || req.headers['x-requested-with']!=='AgentOffice')return res.sendStatus(403);
+  const refreshToken=cookies(req)['__Host-office-refresh'];
+  if(!refreshToken)return res.status(401).json({error:'Authentication required'});
+  try{
+   const r=await fetch(domain+'/oauth2/token',{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:new URLSearchParams({grant_type:'refresh_token',client_id:client,refresh_token:refreshToken}),signal:AbortSignal.timeout(15000)});
+   if(!r.ok)throw new Error('Token refresh rejected');
+   const token=await r.json();await access.verify(token.access_token);
+   res.cookie('__Host-office-access',token.access_token,{...cookieOpts,maxAge:Math.min(token.expires_in,3600)*1000});
+   if(token.refresh_token)res.cookie('__Host-office-refresh',token.refresh_token,refreshCookieOpts);
+   res.json({ok:true});
+  }catch{res.clearCookie('__Host-office-access',cookieOpts);res.clearCookie('__Host-office-refresh',cookieOpts);res.status(401).json({error:'Authentication required'});}
+ });
+ app.post('/auth/logout',(req,res)=>{if(req.headers.origin!==origin)return res.sendStatus(403);res.clearCookie('__Host-office-access',cookieOpts);res.clearCookie('__Host-office-refresh',cookieOpts);res.json({url:domain+'/logout?'+new URLSearchParams({client_id:client,logout_uri:origin+'/'})});});
 }
 export async function requireAuth(req,res,next){
  try{

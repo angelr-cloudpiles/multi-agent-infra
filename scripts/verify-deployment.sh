@@ -57,16 +57,9 @@ else
     echo -e "${YELLOW}⚠️  Skills Bucket not found${NC}"
 fi
 
-# Check RDS
+# Check Langfuse RDS
 echo ""
 echo "5️⃣ Checking RDS..."
-LITELLM_DB=$(terraform output -raw litellm_db_endpoint 2>/dev/null || echo "")
-if [ -n "$LITELLM_DB" ]; then
-    echo -e "${GREEN}✅ LiteLLM DB Endpoint: $LITELLM_DB${NC}"
-else
-    echo -e "${YELLOW}⚠️  LiteLLM DB not found${NC}"
-fi
-
 LANGFUSE_DB=$(terraform output -raw langfuse_db_endpoint 2>/dev/null || echo "")
 if [ -n "$LANGFUSE_DB" ]; then
     echo -e "${GREEN}✅ Langfuse DB Endpoint: $LANGFUSE_DB${NC}"
@@ -77,7 +70,7 @@ fi
 # Check ElastiCache
 echo ""
 echo "6️⃣ Checking ElastiCache..."
-REDIS_ENDPOINT=$(terraform output -raw redis_endpoint 2>/dev/null || echo "")
+REDIS_ENDPOINT=$(terraform output -raw langfuse_redis_endpoint 2>/dev/null || echo "")
 if [ -n "$REDIS_ENDPOINT" ]; then
     echo -e "${GREEN}✅ Redis Endpoint: $REDIS_ENDPOINT${NC}"
 else
@@ -98,16 +91,6 @@ else
     echo -e "${YELLOW}⚠️  Budget not found${NC}"
 fi
 
-# Check Secrets
-echo ""
-echo "8️⃣ Checking Secrets Manager..."
-LITELLM_SECRET=$(terraform output -raw litellm_api_key_secret_arn 2>/dev/null || echo "")
-if [ -n "$LITELLM_SECRET" ]; then
-    echo -e "${GREEN}✅ LiteLLM Secret: $LITELLM_SECRET${NC}"
-else
-    echo -e "${YELLOW}⚠️  LiteLLM Secret not found${NC}"
-fi
-
 # Summary
 echo ""
 echo "=========================================="
@@ -115,7 +98,7 @@ echo "📊 Deployment Verification Summary"
 echo "=========================================="
 echo ""
 echo "Next steps:"
-echo "1. Deploy ECS services (LiteLLM, Langfuse)"
+echo "1. Deploy ECS services (Langfuse and Agent Office)"
 echo "2. Configure Route53 and ACM"
 echo "3. Setup Cognito with Entra ID"
 echo "4. Create AgentCore Harnesses"

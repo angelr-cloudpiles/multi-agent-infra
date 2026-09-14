@@ -1,10 +1,13 @@
 locals {
-  office_name       = "multi-agent-agent-office"
-  office_public_url = "https://aiops.cloudpiles.net"
-  harnesses         = jsondecode(file("${path.module}/../../agentcore/deployed.json"))
+  office_name               = "multi-agent-agent-office"
+  office_public_url         = "https://aiops.cloudpiles.net"
+  office_attachments_bucket = "multi-agent-artifacts-20260913111626839300000003"
+  harnesses                 = jsondecode(file("${path.module}/../../agentcore/deployed.json"))
 }
 
 data "aws_secretsmanager_secret" "langfuse_keys" { name = "multi-agent-langfuse-keys" }
+data "aws_secretsmanager_secret" "langfuse_tattoo_studio_keys" { name = "multi-agent-langfuse-tattoo-studio-keys" }
+data "aws_kms_alias" "office_s3" { name = "alias/multi-agent-s3" }
 
 resource "aws_dynamodb_table" "agent_office_events" {
   name         = "multi-agent-agent-office-events"
@@ -115,8 +118,10 @@ resource "aws_iam_role_policy" "office_task" {
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"], Resource = aws_dynamodb_table.agent_office_events.arn },
       { Effect = "Allow", Action = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility", "sqs:GetQueueAttributes"], Resource = [aws_sqs_queue.office_runs.arn, aws_sqs_queue.office_events.arn] },
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = data.aws_secretsmanager_secret.langfuse_keys.arn },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = [data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn] },
       { Effect = "Allow", Action = ["ecs:DescribeServices"], Resource = "*" },
+      { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${local.office_attachments_bucket}/agent-office/*" },
+      { Effect = "Allow", Action = ["kms:Decrypt", "kms:GenerateDataKey"], Resource = data.aws_kms_alias.office_s3.target_key_arn, Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } } },
       { Effect = "Allow", Action = ["bedrock-agentcore:InvokeHarness", "bedrock-agentcore:InvokeAgentRuntime", "bedrock-agentcore:GetHarness", "bedrock-agentcore:GetAgentRuntime"], Resource = concat([for deployment in values(local.harnesses) : deployment.arn], ["arn:aws:bedrock-agentcore:us-east-1:278741241787:runtime/*"]) }
     ]
   })
@@ -161,9 +166,29 @@ resource "aws_lb_listener_rule" "office" {
   }
 }
 
+# API Gateway reaches the private ALB listener through a VPC Link. The header
+# is injected by the gateway integration, while Agent Office independently
+# verifies the Cognito access token before serving every /api request.
+resource "aws_lb_listener_rule" "office_api_gateway" {
+  listener_arn = "arn:aws:elasticloadbalancing:us-east-1:278741241787:listener/app/multi-agent-platform-alb/c0f7525c5f206dcb/e3c5966f298fb374"
+  priority     = 6
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.office.arn
+  }
+
+  condition {
+    http_header {
+      http_header_name = "x-agent-office-gateway"
+      values           = ["agent-office-api"]
+    }
+  }
+}
+
 variable "agent_office_image" {
   type    = string
-  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office:2026-09-14-agent-office-auth-gate-r5"
+  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:a2b336457fa625faf3bef146d0a789a0903d48944f1626cadf66eefd72feb1b1"
 }
 
 resource "aws_ecs_task_definition" "office" {
@@ -188,7 +213,8 @@ resource "aws_ecs_task_definition" "office" {
       { name = "PUBLIC_URL", value = local.office_public_url },
       { name = "EVENT_TABLE", value = aws_dynamodb_table.agent_office_events.name },
       { name = "RUN_QUEUE_URL", value = aws_sqs_queue.office_runs.url },
-      { name = "EVENT_QUEUE_URL", value = aws_sqs_queue.office_events.url }
+      { name = "EVENT_QUEUE_URL", value = aws_sqs_queue.office_events.url },
+      { name = "ATTACHMENTS_BUCKET", value = local.office_attachments_bucket }
     ]
     secrets          = [{ name = "AUTH_SIGNING_KEY", valueFrom = "${aws_secretsmanager_secret.office_runtime.arn}:auth_signing_key::" }]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = local.logs, awslogs-region = "us-east-1", awslogs-stream-prefix = "agent-office" } }

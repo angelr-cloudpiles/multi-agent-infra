@@ -1,21 +1,5 @@
 # Secrets Manager
 
-# LiteLLM API Key
-resource "aws_secretsmanager_secret" "litellm_api_key" {
-  name                    = "${local.name_prefix}-litellm-api-key"
-  description             = "LiteLLM master API key"
-  recovery_window_in_days = 7
-
-  tags = local.common_tags
-}
-
-resource "aws_secretsmanager_secret_version" "litellm_api_key" {
-  secret_id     = aws_secretsmanager_secret.litellm_api_key.id
-  secret_string = jsonencode({
-    master_key = var.litellm_master_key
-  })
-}
-
 # Langfuse Keys
 resource "aws_secretsmanager_secret" "langfuse_keys" {
   name                    = "${local.name_prefix}-langfuse-keys"
@@ -26,7 +10,7 @@ resource "aws_secretsmanager_secret" "langfuse_keys" {
 }
 
 resource "aws_secretsmanager_secret_version" "langfuse_keys" {
-  secret_id     = aws_secretsmanager_secret.langfuse_keys.id
+  secret_id = aws_secretsmanager_secret.langfuse_keys.id
   secret_string = jsonencode({
     secret_key = var.langfuse_secret_key
     public_key = var.langfuse_public_key
@@ -41,14 +25,14 @@ resource "random_password" "db_password" {
 
 resource "aws_secretsmanager_secret" "db_credentials" {
   name                    = "${local.name_prefix}-db-credentials"
-  description             = "Database credentials for LiteLLM and Langfuse"
+  description             = "Database credentials for Langfuse"
   recovery_window_in_days = 7
 
   tags = local.common_tags
 }
 
 resource "aws_secretsmanager_secret_version" "db_credentials" {
-  secret_id     = aws_secretsmanager_secret.db_credentials.id
+  secret_id = aws_secretsmanager_secret.db_credentials.id
   secret_string = jsonencode({
     username = "dbadmin"
     password = random_password.db_password.result
@@ -65,7 +49,7 @@ resource "aws_secretsmanager_secret" "entra_id" {
 }
 
 resource "aws_secretsmanager_secret_version" "entra_id" {
-  secret_id     = aws_secretsmanager_secret.entra_id.id
+  secret_id = aws_secretsmanager_secret.entra_id.id
   secret_string = jsonencode({
     tenant_id      = var.entra_id_tenant_id
     application_id = var.entra_id_application_id

@@ -5,17 +5,12 @@
 
 set -e
 
-echo "🔐 Generating secrets for Multi-Agent Infrastructure..."
-
-# Generate LiteLLM master key
-LITELLM_KEY=$(openssl rand -hex 32)
-echo "✅ LiteLLM Master Key: $LITELLM_KEY"
+echo "🔐 Generating Langfuse secrets for Multi-Agent Infrastructure..."
+umask 077
 
 # Generate Langfuse keys
 LANGFUSE_SECRET=$(openssl rand -hex 32)
 LANGFUSE_PUBLIC=$(openssl rand -hex 32)
-echo "✅ Langfuse Secret Key: $LANGFUSE_SECRET"
-echo "✅ Langfuse Public Key: $LANGFUSE_PUBLIC"
 
 # Create terraform.tfvars
 cat > terraform.tfvars <<EOF
@@ -26,7 +21,6 @@ notification_email = "aiops@cloudpiles.com"
 entra_id_tenant_id = "0d7c9ad4-6df4-4c9c-a088-f296098ad992"
 entra_id_application_id = "1d92561c-b198-48eb-9c8c-410fda3c969d"
 domain_name = "aiops.cloudpiles.net"
-litellm_master_key = "$LITELLM_KEY"
 langfuse_secret_key = "$LANGFUSE_SECRET"
 langfuse_public_key = "$LANGFUSE_PUBLIC"
 EOF
@@ -34,10 +28,7 @@ EOF
 echo ""
 echo "✅ terraform.tfvars created successfully!"
 echo ""
-echo "⚠️  IMPORTANT: Save these keys securely:"
-echo "   LiteLLM Master Key: $LITELLM_KEY"
-echo "   Langfuse Secret Key: $LANGFUSE_SECRET"
-echo "   Langfuse Public Key: $LANGFUSE_PUBLIC"
+echo "🔒 Secrets were written with owner-only permissions. Store them in AWS Secrets Manager before deployment."
 echo ""
 echo "📝 Next steps:"
 echo "   1. Review terraform.tfvars"

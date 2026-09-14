@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "productionApprovalRequired": true,
+  "maxConcurrentRuns": 2,
+  "content_default_model": "bedrock-claude-fable-5-1",
+  "agents": {
+    "orchestrator-agent": {"display_name":"Orchestrator","default_model":"bedrock-claude-sonnet-5","permitted_models":["bedrock-claude-sonnet-5","bedrock-claude-haiku-4-5","bedrock-openai-gpt-5-6-luna"],"maxIterations":12,"maxTokens":12000,"timeoutSeconds":300},
+    "research-agent": {"display_name":"Research","default_model":"bedrock-claude-sonnet-5","permitted_models":["bedrock-claude-sonnet-5","bedrock-openai-gpt-5-6-terra"],"maxIterations":16,"maxTokens":18000,"timeoutSeconds":420},
+    "code-agent": {"display_name":"Code","default_model":"bedrock-claude-sonnet-5","permitted_models":["bedrock-claude-sonnet-5","bedrock-openai-gpt-5-6-sol"],"maxIterations":20,"maxTokens":24000,"timeoutSeconds":600},
+    "review-agent": {"display_name":"Review","default_model":"bedrock-claude-sonnet-5","permitted_models":["bedrock-claude-sonnet-5","bedrock-claude-opus-5","bedrock-openai-gpt-6-astra"],"maxIterations":12,"maxTokens":16000,"timeoutSeconds":420},
+    "deploy-agent": {"display_name":"Deploy","default_model":"bedrock-claude-sonnet-5","permitted_models":["bedrock-claude-sonnet-5","bedrock-claude-haiku-4-5"],"maxIterations":12,"maxTokens":12000,"timeoutSeconds":300},
+    "ui-design-agent": {"display_name":"UI Design","default_model":"bedrock-claude-fable-5-1","permitted_models":["bedrock-claude-fable-5-1","bedrock-amazon-nova-pro"],"maxIterations":12,"maxTokens":16000,"timeoutSeconds":420}
+  }
+}

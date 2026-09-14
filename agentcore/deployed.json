@@ -2,26 +2,37 @@
   "orchestrator-agent": {
     "harnessId": "orchestrator_agent-i6BOxlKK2r",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/orchestrator_agent-i6BOxlKK2r",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
     "status": "READY"
   },
   "research-agent": {
     "harnessId": "research_agent-kT9h4cp0Au",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/research_agent-kT9h4cp0Au",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
     "status": "READY"
   },
   "code-agent": {
     "harnessId": "code_agent-xwal18KthT",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/code_agent-xwal18KthT",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
     "status": "READY"
   },
   "review-agent": {
     "harnessId": "review_agent-T82Z0xVCi6",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/review_agent-T82Z0xVCi6",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
     "status": "READY"
   },
   "deploy-agent": {
     "harnessId": "deploy_agent-Dn5yyOsV25",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/deploy_agent-Dn5yyOsV25",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
+    "status": "READY"
+  },
+  "ui-design-agent": {
+    "harnessId": "ui_design_agent-AdXBp1w17R",
+    "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/ui_design_agent-AdXBp1w17R",
+    "memoryArn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:memory/AgentOfficeProjectMemory-N0UhKL2yls",
     "status": "READY"
   }
 }

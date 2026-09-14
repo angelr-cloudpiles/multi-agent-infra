@@ -3,15 +3,11 @@
 # Main Budget
 resource "aws_budgets_budget" "main" {
   name              = "${local.name_prefix}-monthly"
-  budget_type        = "COST"
+  budget_type       = "COST"
   limit_amount      = var.budget_limit
   limit_unit        = "USD"
   time_unit         = "MONTHLY"
   time_period_start = "2026-09-01_00:00"
-
-  cost_filters = {
-    Service = ["Amazon Bedrock", "Amazon Elastic Container Service", "Amazon Relational Database Service", "Amazon ElastiCache", "Amazon CloudWatch"]
-  }
 
   notification {
     comparison_operator        = "GREATER_THAN"
@@ -51,15 +47,11 @@ resource "aws_budgets_budget" "main" {
 # Bedrock-specific Budget
 resource "aws_budgets_budget" "bedrock" {
   name              = "${local.name_prefix}-bedrock-monthly"
-  budget_type        = "COST"
+  budget_type       = "COST"
   limit_amount      = 500
   limit_unit        = "USD"
   time_unit         = "MONTHLY"
   time_period_start = "2026-09-01_00:00"
-
-  cost_filters = {
-    Service = ["Amazon Bedrock"]
-  }
 
   notification {
     comparison_operator        = "GREATER_THAN"

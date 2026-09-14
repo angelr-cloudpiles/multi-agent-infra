@@ -3,6 +3,7 @@ import fs from 'node:fs';
 const registry = JSON.parse(fs.readFileSync(new URL('../projects.json', import.meta.url)));
 const idPattern = /^[a-z0-9-]{2,64}$/;
 const contextPattern = /^[a-z0-9-]+\.md$/;
+const secretPattern = /^multi-agent-[a-z0-9-]{2,128}$/;
 
 function invalid(message) { throw Object.assign(new Error(message), { name: 'ProjectRegistryError' }); }
 
@@ -13,6 +14,9 @@ function validateProject(project) {
   if (!Array.isArray(project.allowed_modes) || !project.allowed_modes.length) invalid('Project must allow a mode');
   if (!['platform', 'read_only_context'].includes(project.access_mode)) invalid('Invalid project access mode');
   if (typeof project.environment !== 'string' || !project.environment) invalid('Invalid project environment');
+  if (!project.langfuse || project.langfuse.project_id !== project.project_id || !secretPattern.test(project.langfuse.keys_secret_id || '')) invalid('Project must define dedicated Langfuse credentials');
+  if (!project.bedrock || project.bedrock.region !== 'us-east-1') invalid('Project must define the managed Bedrock region');
+  if (project.context_source && (!['git_snapshot'].includes(project.context_source.kind) || !/^https:\/\/.+/.test(project.context_source.repository || '') || !/^[a-f0-9]{40}$/.test(project.context_source.revision || ''))) invalid('Invalid project context source');
   return Object.freeze({ ...project, allowed_agents: Object.freeze([...project.allowed_agents]), allowed_modes: Object.freeze([...project.allowed_modes]) });
 }
 
@@ -33,7 +37,7 @@ export function scopeFor(projectOrId) {
 }
 
 export function publicProjects() {
-  return configured.map(({ context_file, ...project }) => project);
+  return configured.map(({ context_file, langfuse, bedrock, ...project }) => ({ ...project, integrations: { langfuse_project_id: langfuse.project_id, model_runtime: 'bedrock-agentcore', region: bedrock.region } }));
 }
 
 export function contextFor(projectOrId) {

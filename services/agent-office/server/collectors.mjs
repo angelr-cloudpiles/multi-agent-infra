@@ -2,21 +2,42 @@ import {ECSClient,DescribeServicesCommand} from '@aws-sdk/client-ecs';
 import {BedrockAgentCoreControlClient,GetHarnessCommand} from '@aws-sdk/client-bedrock-agentcore-control';
 import {ReceiveMessageCommand,DeleteMessageCommand} from '@aws-sdk/client-sqs';
 import {event} from './store.mjs';import {harnesses,sqs,langfuse} from './agents.mjs';
+import {projects,scopeFor} from './projects.mjs';
 const ecs=new ECSClient({region:'us-east-1'}),control=new BedrockAgentCoreControlClient({region:'us-east-1'});
 const known=new Map();
-async function changed(id,value,input){const digest=JSON.stringify(value);if(known.get(id)!==digest){await event({...input,detail:value});known.set(id,digest);}}
+async function changed(id,value,input,scope){const digest=JSON.stringify(value);if(known.get(id)!==digest){await event({...input,detail:value},scope);known.set(id,digest);}}
+export function observationEvent(project,observation){
+ const metadata=observation.metadata || {};
+ return {
+  id:`observation-${project.project_id}-${observation.id}`,
+  value:{trace_id:observation.traceId,observation_id:observation.id,type:observation.type,cost_usd:observation.totalCost ?? null},
+  input:{source:'langfuse',type:'observation.observed',event_id:'langfuse-'+observation.id,timestamp:observation.startTime,run_id:metadata.run_id || observation.traceId,agent_id:metadata.agent_id || 'platform',trace_id:observation.traceId}
+ };
+}
+async function projectObservations(project){
+ const toStartTime=new Date(),fromStartTime=new Date(toStartTime.getTime()-24*60*60*1000);let cursor;const items=[];
+ for(let page=0;page<10;page++){
+  const query=new URLSearchParams({limit:'100',fromStartTime:fromStartTime.toISOString(),toStartTime:toStartTime.toISOString(),fields:'core,basic,metadata,trace_context'});
+  if(cursor)query.set('cursor',cursor);
+  const response=await langfuse(`/v2/observations?${query}`,{},project.project_id);
+  items.push(...(response.data || []));
+  cursor=response.meta?.cursor;
+  if(!cursor)break;
+ }
+ return items;
+}
 export async function collect(){
- const services=await ecs.send(new DescribeServicesCommand({cluster:'multi-agent-platform',services:['multi-agent-clickhouse','multi-agent-litellm','multi-agent-langfuse','multi-agent-langfuse-worker','multi-agent-agent-office']}));
+ const services=await ecs.send(new DescribeServicesCommand({cluster:'multi-agent-platform',services:['multi-agent-clickhouse','multi-agent-langfuse','multi-agent-langfuse-worker','multi-agent-agent-office']}));
  for(const s of services.services || [])await changed(s.serviceName,{running:s.runningCount,desired:s.desiredCount,deployment:s.deployments?.[0]?.rolloutState},{source:'ecs',type:'service.observed',service:s.serviceName});
  for(const [agent_id,h] of Object.entries(harnesses)){
   const result=await control.send(new GetHarnessCommand({harnessId:h.harnessId}));
   await changed(agent_id,result.harness?.status,{source:'agentcore',type:'harness.observed',agent_id});
  }
- const response=await fetch('https://litellm.aiops.cloudpiles.net/health/liveliness',{signal:AbortSignal.timeout(10000)});
- await changed('litellm-health',{http_status:response.status},{source:'litellm',type:'proxy.observed'});
- const traces=await langfuse('/traces?limit=50');
- for(const t of traces.data || []){
-  await changed('trace-'+t.id,{trace_id:t.id,cost_usd:t.totalCost ?? null,observations:t.observations?.length ?? null},{source:'langfuse',type:'trace.observed',event_id:'langfuse-'+t.id,timestamp:t.timestamp,run_id:t.metadata?.run_id || t.id,agent_id:t.metadata?.agent_id || 'platform',trace_id:t.id});
+ for(const project of projects.values()){
+  for(const observation of await projectObservations(project)){
+   const observed=observationEvent(project,observation);
+   await changed(observed.id,observed.value,observed.input,scopeFor(project));
+  }
  }
 }
 export async function eventConsumer(signal){

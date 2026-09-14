@@ -21,11 +21,20 @@ export async function updateRun(currentScope,run_id,patch,expected){
  if(expected){condition+=' AND #status = :expected';names['#status']='status';values[':expected']=expected;}
  await db.send(new UpdateCommand({TableName:table,Key:key(currentScope,'RUN#'+run_id),UpdateExpression:'SET '+fields.map((k,i)=>`#k${i}=:v${i}`).join(', '),ConditionExpression:condition,ExpressionAttributeNames:names,ExpressionAttributeValues:values}));
 }
-export async function chatMessage(currentScope,{role,content,agent_id='platform',run_id=null}){
+export async function chatMessage(currentScope,{role,content,agent_id='platform',run_id=null,parent_task_id=null,attachments=[],streaming=false}){
  if(!['user','agent','system'].includes(role))throw new Error('Invalid chat role');
- if(typeof content!=='string'||!content.trim()||content.length>60000)throw new Error('Invalid chat content');
+ if(typeof content!=='string'||content.length>60000||(!content.trim()&&!attachments.length))throw new Error('Invalid chat content');
  const created_at=new Date().toISOString(),message_id=randomUUID();
- return put(currentScope,`CHAT#${created_at}#${message_id}`,{message_id,role,content:content.trim(),agent_id,run_id,created_at});
+ return put(currentScope,`CHAT#${created_at}#${message_id}`,{message_id,role,content:content.trim(),agent_id,run_id,parent_task_id,attachments,streaming,created_at});
+}
+export async function updateChatMessage(currentScope,message,{content,streaming=false,failed=false,trace_id,observation_id,feedback}){
+ const patch={content:content.trim(),streaming,failed};
+ if(trace_id)patch.trace_id=trace_id;
+ if(observation_id)patch.observation_id=observation_id;
+ if(feedback!==undefined)patch.feedback=feedback;
+ const names={},values={};
+ Object.entries(patch).forEach(([field,value],index)=>{names[`#f${index}`]=field;values[`:v${index}`]=value;});
+ await db.send(new UpdateCommand({TableName:table,Key:key(currentScope,`CHAT#${message.created_at}#${message.message_id}`),UpdateExpression:'SET '+Object.keys(patch).map((_,index)=>`#f${index}=:v${index}`).join(', '),ExpressionAttributeNames:names,ExpressionAttributeValues:values}));
 }
 export async function event(input,currentScope=scope){
  const e=normalizeEvent(input,currentScope);

@@ -7,9 +7,22 @@
       "environment": "production",
       "description": "Operación de la plataforma de agentes.",
       "access_mode": "platform",
-      "allowed_agents": ["orchestrator-agent", "research-agent", "code-agent", "review-agent", "deploy-agent"],
+      "allowed_agents": ["orchestrator-agent", "research-agent", "code-agent", "review-agent", "deploy-agent", "ui-design-agent"],
       "allowed_modes": ["task", "meeting"],
+      "langfuse": {
+        "project_id": "multi-agent",
+        "project_name": "Gaudi",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-keys"
+      },
+      "bedrock": {"region": "us-east-1"},
       "context_file": "multi-agent.md"
+      ,"context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/multi-agent-infra.git",
+        "revision": "addfa107bc482c4d9227861fb58a6ee3a4256114"
+      }
     },
     {
       "project_id": "tattoo-studio",
@@ -17,9 +30,22 @@
       "environment": "production",
       "description": "Piloto de análisis de arquitectura y operación en modo de solo lectura.",
       "access_mode": "read_only_context",
-      "allowed_agents": ["orchestrator-agent", "research-agent", "review-agent"],
+      "allowed_agents": ["orchestrator-agent", "research-agent", "review-agent", "ui-design-agent"],
       "allowed_modes": ["task", "meeting"],
-      "context_file": "tattoo-studio.md"
+      "langfuse": {
+        "project_id": "tattoo-studio",
+        "project_name": "Fede Rod Tattoo Studio",
+        "organization_id": "cmu13k4cm001sad079nhqapbz",
+        "organization_name": "fede-rod-tattoo",
+        "keys_secret_id": "multi-agent-langfuse-tattoo-studio-keys"
+      },
+      "bedrock": {"region": "us-east-1"},
+      "context_file": "tattoo-studio.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/opt-3990-fede-rod-tattoo.git",
+        "revision": "398ab83d28f1e27989ea3fe10a6aea46fc66521a"
+      }
     }
   ]
 }

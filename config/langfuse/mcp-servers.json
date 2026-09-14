@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "langfuse-platform": {
+      "command": "node",
+      "args": ["tools/langfuse-control/mcp-proxy.mjs"],
+      "env": {"LANGFUSE_PROJECT_ID": "multi-agent", "AWS_PROFILE": "aiops-aws", "AWS_REGION": "us-east-1"}
+    },
+    "langfuse-tattoo-studio": {
+      "command": "node",
+      "args": ["tools/langfuse-control/mcp-proxy.mjs"],
+      "env": {"LANGFUSE_PROJECT_ID": "tattoo-studio", "AWS_PROFILE": "aiops-aws", "AWS_REGION": "us-east-1"}
+    }
+  }
+}

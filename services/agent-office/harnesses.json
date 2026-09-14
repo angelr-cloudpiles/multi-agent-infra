@@ -23,5 +23,10 @@
     "harnessId": "deploy_agent-Dn5yyOsV25",
     "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/deploy_agent-Dn5yyOsV25",
     "status": "READY"
+  },
+  "ui-design-agent": {
+    "harnessId": "ui_design_agent-AdXBp1w17R",
+    "arn": "arn:aws:bedrock-agentcore:us-east-1:278741241787:harness/ui_design_agent-AdXBp1w17R",
+    "status": "READY"
   }
 }

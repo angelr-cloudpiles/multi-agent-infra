@@ -35,19 +35,14 @@ output "skills_bucket_arn" {
   value       = aws_s3_bucket.skills.arn
 }
 
-output "litellm_db_endpoint" {
-  description = "Endpoint for LiteLLM database"
-  value       = aws_db_instance.litellm.endpoint
-}
-
 output "langfuse_db_endpoint" {
   description = "Endpoint for Langfuse database"
   value       = aws_db_instance.langfuse.endpoint
 }
 
-output "redis_endpoint" {
-  description = "Endpoint for Redis cluster"
-  value       = aws_elasticache_cluster.litellm.cache_nodes[0].address
+output "langfuse_redis_endpoint" {
+  description = "Redis endpoint used by Langfuse"
+  value       = aws_elasticache_cluster.langfuse.cache_nodes[0].address
 }
 
 output "agentcore_execution_role_arn" {
@@ -73,11 +68,6 @@ output "budget_name" {
 output "sns_topic_arn" {
   description = "ARN of the SNS topic for alerts"
   value       = aws_sns_topic.budget_alerts.arn
-}
-
-output "litellm_api_key_secret_arn" {
-  description = "ARN of the LiteLLM API key secret"
-  value       = aws_secretsmanager_secret.litellm_api_key.arn
 }
 
 output "langfuse_keys_secret_arn" {
