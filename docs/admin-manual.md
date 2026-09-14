@@ -79,6 +79,8 @@ npm run build
 
 El despliegue publicado debe registrar una imagen inmutable en ECR y una revisión nueva de la task definition. Tras actualizar el servicio, espere a que ECS estabilice y ejecute el healthcheck anterior. Conserve el identificador de task definition en el cambio o ticket operativo.
 
+**Registro de despliegue vigente (14/09/2026):** revisión ECS `47`, imagen `sha256:6b0c1d7ca8206aeea176bb7e1a8dd6758f8879ab4ddc5ff8beedcbac0d38bc7c`, estado `COMPLETED`, una tarea en ejecución y healthcheck `/healthz` correcto.
+
 Si una revisión nueva no carga la interfaz, revierta a la última task definition saludable, espere el estado `COMPLETED` y registre la causa antes de volver a desplegar.
 
 ## Operación del mapa y chat

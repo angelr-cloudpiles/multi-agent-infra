@@ -45,4 +45,6 @@ La documentación operativa se encuentra en:
 - [Manual de administración](docs/admin-manual.md)
 - [Arquitectura Bedrock AgentCore y Langfuse](docs/ARCHITECTURE-BEDROCK-LANGFUSE.md)
 - [Configuración de AgentCore](docs/AGENTCORE-CONFIGURATION.md)
+- [Configuración de modelos y perfiles](docs/MODEL-CONFIGURATION.md)
+- [Operación de Langfuse y AgentCore](docs/LANGFUSE-AGENTCORE-OPERATIONS.md)
 - [Migración de proyectos](docs/project-migration.md)

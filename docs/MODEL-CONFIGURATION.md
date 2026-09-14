@@ -1,65 +1,54 @@
-# Modelo, agente y observabilidad: límites de responsabilidad
+# Configuración de modelos y perfiles de agentes
 
-> **Actualización de arquitectura:** la ejecución de modelos se realiza directamente en Amazon Bedrock mediante AgentCore. LiteLLM fue retirado; los perfiles vigentes están en `services/agent-office/agent-profiles.json` y `services/agent-office/model-catalog.json`. El contenido siguiente se conserva como referencia histórica.
-
-## LiteLLM: catálogo de despliegues
-
-LiteLLM administra despliegues de proveedores y grupos de modelos. Sus nombres
-describen proveedor y modelo, nunca un rol de agente:
-
-| Grupo LiteLLM | Despliegue Bedrock | Capacidades |
-|---|---|---|
-| `bedrock-claude-haiku-4-5` | Claude Haiku 4.5 | Texto |
-| `bedrock-claude-sonnet-5` | Claude Sonnet 5 | Texto, imagen |
-| `bedrock-claude-opus-5` | Claude Opus 5 | Texto, imagen |
-| `bedrock-claude-fable-5-1` | Claude Fable 5.1 | Texto, imagen |
-| `bedrock-openai-gpt-5-6-luna` | GPT 5.6 Luna | Texto, imagen |
-| `bedrock-openai-gpt-5-6-terra` | GPT 5.6 Terra | Texto, imagen |
-| `bedrock-openai-gpt-5-6-sol` | GPT 5.6 Sol | Texto, imagen |
-| `bedrock-openai-gpt-6-astra` | GPT 6 Astra | Texto, imagen |
-| `bedrock-amazon-nova-pro` | Amazon Nova Pro | Texto, imagen, vídeo |
-
-Cada equipo de LiteLLM recibe sólo estos grupos mediante una clave virtual de
-proyecto. Los grupos son la capa para permisos, límites, presupuestos, health
-checks, fallbacks y observabilidad del gateway.
-
-`Auto-Routers` se mantiene sin configurar: LiteLLM lo declara beta. No se
-habilita un selector automático hasta tener evaluaciones de Langfuse que
-demuestren calidad, coste y comportamiento de fallback por cada tarea.
-
-## Agent Office y AgentCore: perfiles de agente
-
-Los perfiles viven en `services/agent-office/agent-profiles.json`. Cada uno
-declara su propósito, grupo predeterminado, alternativas permitidas, límites de
-iteraciones y timeout. Por ejemplo, `code-agent` puede usar Sonnet 5 o GPT 5.6
-Sol, pero no puede seleccionar Opus o Nova Pro sin que se cambie su perfil.
-
-Los prompts versionados y los contratos de evaluación viven por proyecto en
-Langfuse. Las identidades operativas siguen siendo los Harnesses de AgentCore.
-
-El endpoint `/v1/agents` de LiteLLM no es un editor de perfiles de modelo: es
-un registro A2A para agentes que ya exponen una `AgentCard` y un endpoint A2A.
-No se registran entradas ficticias allí. Cuando Agent Office exponga su
-adaptador A2A, cada agente podrá registrarse en LiteLLM con su URL, capacidades
-y autenticación reales.
-
-## Integración LiteLLM y Langfuse
-
-La integración nativa se activa en LiteLLM con `langfuse_otel` y credenciales
-de un proyecto Langfuse. Entonces cada llamada que atraviesa el proxy aporta
-tokens, coste y latencia a Langfuse.
-
-La ejecución actual de los Harnesses usa AgentCore -> Bedrock directamente.
-Por eso LiteLLM es hoy control-plane de catálogo y equipos, mientras Langfuse
-recibe la telemetría de Agent Office de forma explícita. Para que LiteLLM sea
-la fuente de gasto por proyecto hay que mover el data-plane de inferencia al
-proxy o introducir un adaptador de ejecución que llame a `/v1/responses` de
-LiteLLM; no basta con añadir un callback.
+La ejecución de modelos se realiza directamente en **Amazon Bedrock mediante AgentCore**. LiteLLM fue retirado y no participa en el catálogo, enrutamiento, credenciales ni observabilidad.
 
 ## Fuentes de verdad
 
-- Despliegues LiteLLM: `services/litellm/config.yaml`.
-- Catálogo semántico: `services/agent-office/model-catalog.json`.
-- Perfiles de agente: `services/agent-office/agent-profiles.json`.
-- Unión segura para AgentCore: `services/agent-office/server/policy.mjs`.
-- Prompts, datasets y evaluaciones: `scripts/sync-langfuse-project.mjs`.
+| Información | Archivo | Responsable en tiempo de ejecución |
+| --- | --- | --- |
+| Catálogo y capacidades de modelos | `services/agent-office/model-catalog.json` | Política del servidor de Agent Office |
+| Perfil, alternativas y límites de cada agente | `services/agent-office/agent-profiles.json` | Política del servidor de Agent Office |
+| Unión de alias con IDs Bedrock | `services/agent-office/server/policy.mjs` | Agent Office, antes de encolar |
+| Prompt de producción y evaluación | Langfuse por proyecto | Agent Office al invocar el Harness |
+| Runtime, memoria y guardrails | AgentCore | Harnesses e IAM de AWS |
+
+El navegador no puede indicar modelos, límites, herramientas ni skills. Agent Office valida la política antes de aceptar una tarea y el runtime recibe únicamente el modelo autorizado.
+
+## Catálogo de modelos
+
+| Alias | Modelo Bedrock | Nivel | Capacidades |
+| --- | --- | --- | --- |
+| `bedrock-claude-haiku-4-5` | Claude Haiku 4.5 | rápido | texto |
+| `bedrock-claude-sonnet-5` | Claude Sonnet 5 | general | texto, imagen |
+| `bedrock-claude-opus-5` | Claude Opus 5 | crítico | texto, imagen |
+| `bedrock-claude-fable-5-1` | Claude Fable 5.1 | creativo | texto, imagen |
+| `bedrock-openai-gpt-5-6-luna` | GPT 5.6 Luna | rápido | texto, imagen |
+| `bedrock-openai-gpt-5-6-terra` | GPT 5.6 Terra | razonamiento | texto, imagen |
+| `bedrock-openai-gpt-5-6-sol` | GPT 5.6 Sol | código | texto, imagen |
+| `bedrock-openai-gpt-6-astra` | GPT 6 Astra | frontera | texto, imagen |
+| `bedrock-amazon-nova-pro` | Amazon Nova Pro | visión | texto, imagen, vídeo |
+
+El enrutamiento es explícito. No hay un auto-router: cambiar de modelo exige actualizar el perfil del agente, revisar evaluación y publicar la configuración.
+
+## Perfiles vigentes
+
+| Agente | Predeterminado | Alternativas permitidas | Límite de iteraciones / timeout |
+| --- | --- | --- | --- |
+| Orchestrator | Claude Sonnet 5 | Haiku 4.5, GPT 5.6 Luna | 12 / 300 s |
+| Research | Claude Sonnet 5 | GPT 5.6 Terra | 16 / 420 s |
+| Code | Claude Sonnet 5 | GPT 5.6 Sol | 20 / 600 s |
+| Review | Claude Sonnet 5 | Claude Opus 5, GPT 6 Astra | 12 / 420 s |
+| Deploy | Claude Sonnet 5 | Haiku 4.5 | 12 / 300 s |
+| UI Design | Claude Fable 5.1 | Amazon Nova Pro | 12 / 420 s |
+
+`Deploy` no publica cambios por sí mismo: su resultado queda en espera de aprobación independiente. UI Design no tiene herramientas autorizadas en AgentCore.
+
+## Cambio seguro de un perfil
+
+1. Modificar el catálogo o perfil versionado.
+2. Ejecutar `npm test` y `npm run build` en `services/agent-office`.
+3. Publicar el prompt como `staging` en el proyecto Langfuse correspondiente y evaluar calidad, seguridad y coste.
+4. Promover a `production` sólo si se cumplen los umbrales definidos por proyecto.
+5. Desplegar una imagen inmutable y verificar una tarea no productiva, la traza y los scores en Langfuse.
+
+Los precios no se cargan manualmente en Langfuse hasta que el SKU de AWS Price List coincida de forma verificable con el modelo e inference profile invocados. Así se evita informar costes falsos.
