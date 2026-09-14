@@ -1,0 +1,30 @@
+name: Langfuse prompt update
+
+on:
+  repository_dispatch:
+    types: [langfuse-prompt-update]
+  workflow_dispatch:
+    inputs:
+      prompt_name:
+        description: Langfuse prompt name
+        required: false
+      prompt_version:
+        description: Langfuse prompt version
+        required: false
+
+permissions:
+  contents: read
+
+jobs:
+  acknowledge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Record the versioned prompt event
+        env:
+          PROMPT_NAME: ${{ github.event.client_payload.prompt_name || inputs.prompt_name || 'unspecified' }}
+          PROMPT_VERSION: ${{ github.event.client_payload.prompt_version || inputs.prompt_version || 'unspecified' }}
+          LANGFUSE_PROJECT: ${{ github.event.client_payload.project_id || 'configured-in-Langfuse' }}
+        run: |
+          printf 'Langfuse project: %s\\nPrompt: %s\\nVersion: %s\\n' "$LANGFUSE_PROJECT" "$PROMPT_NAME" "$PROMPT_VERSION"
+      - name: Preserve review-only behavior
+        run: echo 'This workflow receives a versioned prompt event and intentionally does not mutate source or deploy.'
