@@ -1,13 +1,15 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import {BedrockAgentCoreClient, InvokeHarnessCommand} from '@aws-sdk/client-bedrock-agentcore';
+import {fromIni} from '@aws-sdk/credential-providers';
 
 const root = new URL('../', import.meta.url);
 const harnesses = JSON.parse(fs.readFileSync(new URL('harnesses.json', root)));
 const catalog = JSON.parse(fs.readFileSync(new URL('model-catalog.json', root)));
 const profiles = JSON.parse(fs.readFileSync(new URL('agent-profiles.json', root)));
 const policy = {aliases:Object.fromEntries(Object.entries(catalog.model_groups).map(([name, model]) => [name, model.model_id])),agents:Object.fromEntries(Object.entries(profiles.agents).map(([id, profile]) => [id, {alias:profile.default_model}]))};
-const client = new BedrockAgentCoreClient({region: 'us-east-1', maxAttempts: 2});
+const profile = process.env.AWS_PROFILE || 'aiops-aws';
+const client = new BedrockAgentCoreClient({region: 'us-east-1', maxAttempts: 2, credentials: fromIni({profile})});
 
 const selectedAgent = process.env.AGENT_ID;
 const selectedHarnesses = selectedAgent ? [[selectedAgent, harnesses[selectedAgent]]] : Object.entries(harnesses);

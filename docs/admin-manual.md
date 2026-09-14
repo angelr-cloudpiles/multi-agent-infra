@@ -47,6 +47,8 @@ El servicio está sano cuando `running` coincide con `desired`, no hay tareas pe
 4. Verificar si hay resultados preservados y decidir entre reintentar síntesis o aportar contexto.
 5. Abrir Langfuse desde el panel de trazas para inspeccionar la ejecución, prompt, uso y evaluación.
 
+Una continuación por asistencia debe cerrar la tarea raíz cuando concluye. Si el detalle queda en `Requiere atención` pese a que aparece una respuesta final, conserve los identificadores de tarea y traza, revise el error de DynamoDB en los logs del servicio y no cree otra tarea para compensarlo.
+
 No borre una tarea para resolver un error: el hilo y los resultados preservados son evidencia operativa.
 
 ### Verificar observabilidad
@@ -59,6 +61,8 @@ Por cada proyecto, comprobar en Langfuse:
 - que prompts y evaluadores activos correspondan al proyecto.
 
 La ausencia de una traza no autoriza a repetir una tarea destructiva. Primero confirme el estado en Agent Office, la cola y los logs del runtime.
+
+Para revisar los Harnesses efectivos sin invocar una tarea, consulte `GetHarness` con el perfil autorizado. El resultado debe mostrar `READY`, la memoria `AgentOfficeProjectMemory-N0UhKL2yls` y los límites de modelo esperados. No se registran skills ni herramientas MCP en AgentCore mientras no exista un contrato autorizado para una herramienta concreta.
 
 ## Despliegue de Agent Office
 

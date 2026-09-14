@@ -8,6 +8,7 @@ export const table=process.env.EVENT_TABLE;
 export const scope=scopeFor('multi-agent');
 export const pkFor=currentScope=>`PROJECT#${currentScope.project_id}#ENV#${currentScope.environment}`;
 export const key=(currentScope,sk)=>({pk:pkFor(currentScope),sk});
+export const definedPatch=patch=>Object.fromEntries(Object.entries(patch || {}).filter(([,value])=>value!==undefined));
 export async function get(currentScope,sk){return (await db.send(new GetCommand({TableName:table,Key:key(currentScope,sk),ConsistentRead:true}))).Item;}
 export async function put(currentScope,sk,item){await db.send(new PutCommand({TableName:table,Item:{...item,...key(currentScope,sk)},ConditionExpression:'attribute_not_exists(pk)'}));return item;}
 export async function query(currentScope,prefix,limit=100,cursor){
@@ -15,8 +16,9 @@ export async function query(currentScope,prefix,limit=100,cursor){
  return {items:data.Items || [],cursor:data.LastEvaluatedKey};
 }
 export async function updateRun(currentScope,run_id,patch,expected){
- const fields=Object.keys(patch),names={},values={};
- fields.forEach((k,i)=>{names['#k'+i]=k;values[':v'+i]=patch[k];});
+ const safePatch=definedPatch(patch),fields=Object.keys(safePatch),names={},values={};
+ if(!fields.length)return;
+ fields.forEach((k,i)=>{names['#k'+i]=k;values[':v'+i]=safePatch[k];});
  let condition='attribute_exists(pk)';
  if(expected){condition+=' AND #status = :expected';names['#status']='status';values[':expected']=expected;}
  await db.send(new UpdateCommand({TableName:table,Key:key(currentScope,'RUN#'+run_id),UpdateExpression:'SET '+fields.map((k,i)=>`#k${i}=:v${i}`).join(', '),ConditionExpression:condition,ExpressionAttributeNames:names,ExpressionAttributeValues:values}));

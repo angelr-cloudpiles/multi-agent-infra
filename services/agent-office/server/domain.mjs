@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 export const STATES = new Set(['idle','queued','working','waiting_for_tool','waiting_for_approval','reviewing','meeting','error','paused']);
 export const SOURCES = new Set(['orchestrator','langfuse','ecs','cicd','agentcore','office']);
 export const ASSISTABLE_STATUSES = new Set(['paused','error','waiting_for_approval']);
+export const rootTaskId=run=>run?.parent_task_id || run?.parent_run_id || null;
 export function normalizeEvent(input, scope = {project_id:'multi-agent',environment:'production'}) {
   if (!SOURCES.has(input.source)) throw new Error('Invalid event source');
   if (input.state && !STATES.has(input.state)) throw new Error('Invalid agent state');

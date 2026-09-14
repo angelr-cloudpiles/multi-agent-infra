@@ -33,6 +33,8 @@ Las estrategias instruyen explícitamente no almacenar credenciales, tokens, con
 
 No se creó una AgentCore Gateway de herramientas (MCP) porque no existe todavía un contrato OpenAPI/MCP de herramientas que deba exponerse a los agentes. Crear una Gateway vacía no aporta una integración funcional ni un límite de seguridad. Cuando se incorpore una herramienta concreta, deberá definirse su destino, credencial de mínimo privilegio, esquema de entrada/salida y una prueba de autorización antes de publicarla.
 
+La verificación efectiva del 14 de septiembre de 2026 confirmó que los seis Harnesses están `READY`, usan la memoria declarada y no tienen `tools` ni `skills` de AgentCore registrados. Orchestrator, Research, Code, Review y Deploy pueden usar sólo `shell` y `file_operations` dentro de su sandbox. UI Design no tiene herramientas autorizadas: su función es producir decisiones y especificaciones de interfaz a partir del contexto. Esta separación evita que un agente de diseño haga mutaciones técnicas. El archivo `agentcore/ui-design-agent.json` refleja ese estado efectivo para que una actualización posterior no lo sobrescriba.
+
 ## API Gateway
 
 La API HTTP se publica en `https://f4wx76i6c3.execute-api.us-east-1.amazonaws.com`. Sólo enruta `/api` y `/api/{proxy+}` hacia Agent Office. Exige un JWT emitido para el cliente de Cognito configurado; CORS permite únicamente `https://aiops.cloudpiles.net`. El VPC Link llega al listener HTTPS del ALB mediante una regla que exige el encabezado inyectado por la integración. La interfaz pública conserva su regla de host y Agent Office valida nuevamente el token en ambos caminos, por lo que la Gateway no es el único control de acceso.
@@ -47,3 +49,12 @@ La configuración declarativa está en:
 - `infra/runtime/agent-office-api.tf` para API Gateway, VPC Link, JWT y registros.
 
 Para una nueva organización o proyecto, se crea primero el proyecto aislado en Langfuse, se agrega el contexto versionado a `projects.json` y `project-contexts/`, y luego Agent Office generará automáticamente un espacio de memoria aislado mediante el `actorId` de ese proyecto y usuario.
+
+Para comprobar los Harnesses desde una estación administradora:
+
+```bash
+cd services/agent-office
+npm run verify:harnesses
+```
+
+El verificador usa el perfil `aiops-aws` si `AWS_PROFILE` no fue definido. En CI con credenciales temporales, definir `AWS_PROFILE` de forma explícita o usar el cliente AWS configurado por el entorno.

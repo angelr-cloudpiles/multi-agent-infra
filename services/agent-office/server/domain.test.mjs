@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {agentMemoryIdentity,validateRun,normalizeEvent,mayApprove,mayAssist,validateAssistance,ASSISTABLE_STATUSES,agentFailureGuidance,canRetrySynthesis} from './domain.mjs';
+import {agentMemoryIdentity,validateRun,normalizeEvent,mayApprove,mayAssist,validateAssistance,ASSISTABLE_STATUSES,agentFailureGuidance,canRetrySynthesis,rootTaskId} from './domain.mjs';
+import {definedPatch} from './store.mjs';
 import {projectFor} from './projects.mjs';
 import {executionPlan} from './workflow.mjs';
 import {policy} from './policy.mjs';
@@ -74,4 +75,14 @@ test('conversation continuations stay within their existing task',()=>{
  const tattoo=projectFor('tattoo-studio');
  const plan=executionPlan({agent_id:'orchestrator-agent',mode:'task',continuation_kind:'conversation_message'},tattoo);
  assert.deepEqual(plan,{parallel:['orchestrator-agent'],synthesizer:null});
+});
+
+test('continuations always resolve the root task, including assistance runs',()=>{
+ assert.equal(rootTaskId({parent_task_id:'task-a',parent_run_id:'task-b'}),'task-a');
+ assert.equal(rootTaskId({parent_run_id:'task-b'}),'task-b');
+ assert.equal(rootTaskId({}),null);
+});
+
+test('run updates never send undefined values to DynamoDB',()=>{
+ assert.deepEqual(definedPatch({results:[],warnings:undefined,status:'completed'}),{results:[],status:'completed'});
 });

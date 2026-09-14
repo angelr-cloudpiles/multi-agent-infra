@@ -75,7 +75,7 @@ La animación respeta la preferencia del sistema de reducir movimiento.
 
 ## Observabilidad
 
-El enlace de trazas del panel abre Langfuse cuando existe una traza disponible. Langfuse es el lugar para revisar:
+El detalle de una tarea muestra cada traza disponible con el agente que la emitió y su identificador. El enlace **Abrir trazas del proyecto** lleva a la vista de trazas de Langfuse correspondiente, sin exponer claves. Langfuse es el lugar para revisar:
 
 - trazas y generaciones;
 - sesiones y usuarios seudonimizados;
