@@ -6,11 +6,11 @@ import officeFloor from "./assets/office-floor.webp";
 import "./styles.css";
 
 const AGENTS = [
-  { id: "orchestrator-agent", name: "Orchestrator", role: "Coordina el trabajo", color: "violet", home: [355, 290] },
-  { id: "research-agent", name: "Research", role: "Investiga y sintetiza", color: "mint", home: [545, 185] },
-  { id: "code-agent", name: "Code", role: "Implementa cambios", color: "blue", home: [250, 430] },
-  { id: "review-agent", name: "Review", role: "Revisa calidad", color: "rose", home: [580, 390] },
-  { id: "deploy-agent", name: "Deploy", role: "Entrega con control", color: "amber", home: [760, 430] },
+  { id: "orchestrator-agent", name: "Orchestrator", role: "Coordina el trabajo", color: "violet", home: [350, 285], skin: "#d79b73", hair: "#392d37", outfit: "#7859ae" },
+  { id: "research-agent", name: "Research", role: "Investiga y sintetiza", color: "mint", home: [541, 194], skin: "#b87859", hair: "#d3a15d", outfit: "#4b9f92" },
+  { id: "code-agent", name: "Code", role: "Implementa cambios", color: "blue", home: [246, 429], skin: "#9f604b", hair: "#1e2535", outfit: "#426ca7" },
+  { id: "review-agent", name: "Review", role: "Revisa calidad", color: "rose", home: [586, 382], skin: "#e2a07d", hair: "#703d54", outfit: "#b05f9d" },
+  { id: "deploy-agent", name: "Deploy", role: "Entrega con control", color: "amber", home: [760, 424], skin: "#c17c58", hair: "#50352b", outfit: "#b87642" },
 ];
 
 const STATE_LABEL = {
@@ -40,7 +40,7 @@ function PixelOfficeCanvas({ statuses, selected, onSelect }) {
   useEffect(() => {
     const canvas = canvasRef.current; const context = canvas.getContext("2d"); const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches; let frame; let previous = performance.now();
     const paintRect = (x, y, width, height, color) => { context.fillStyle = color; context.fillRect(x, y, width, height); };
-    const label = (text, x, y, width, color = "#08152e") => { paintRect(x, y, width, 21, color); context.strokeStyle = "#4a6da1"; context.strokeRect(x + .5, y + .5, width - 1, 20); context.fillStyle = "#eaf1ff"; context.font = "9px ui-monospace, monospace"; context.fillText(text, x + 6, y + 13); };
+    const label = (text, x, y, width, color = "#08152e") => { paintRect(x, y, width, 13, color); context.strokeStyle = "#4a6da1"; context.strokeRect(x + .5, y + .5, width - 1, 12); context.fillStyle = "#eaf1ff"; context.font = "7px ui-monospace, monospace"; context.fillText(text, x + 4, y + 9); };
     const drawFurniture = () => {
       context.fillStyle = "#171924"; context.fillRect(0, 0, 960, 540);
       context.strokeStyle = "rgba(227,181,117,.12)"; context.lineWidth = 1; for (let x = 0; x < 960; x += 24) { context.beginPath(); context.moveTo(x, 0); context.lineTo(x, 540); context.stroke(); } for (let y = 0; y < 540; y += 24) { context.beginPath(); context.moveTo(0, y); context.lineTo(960, y); context.stroke(); }
@@ -56,12 +56,30 @@ function PixelOfficeCanvas({ statuses, selected, onSelect }) {
       context.strokeStyle="#7f9fc9"; context.setLineDash([7,7]); context.beginPath(); context.moveTo(108,464);context.lineTo(170,464);context.lineTo(170,310);context.lineTo(435,310);context.lineTo(435,210);context.lineTo(675,210);context.stroke(); context.setLineDash([]);
     };
     const drawAgent = (agent, state, point, now) => {
-      const active = ["working","reviewing","meeting","queued","waiting_for_tool","waiting_for_approval","error"].includes(state); const bob = !reducedMotion && active && state !== "waiting_for_approval" ? Math.round(Math.sin(now / 160) * 2) : 0; const [x,y] = point; const color = PALETTE[agent.color];
-      paintRect(x - 13, y + 22, 29, 6, "rgba(2,8,22,.62)"); paintRect(x - 10, y + bob, 22, 25, color); paintRect(x - 13, y - 18 + bob, 28, 23, "#f0c19b"); paintRect(x - 14, y - 23 + bob, 30, 8, "#1a2340"); paintRect(x - 7, y - 8 + bob, 4, 4, "#18223e"); paintRect(x + 6, y - 8 + bob, 4, 4, "#18223e");
-      if (state === "working" || state === "reviewing") { paintRect(x + 13, y + 9 + bob, 8, 4, "#f0c19b"); paintRect(x + 17, y + 12 + bob, 4, 8, "#f0c19b"); }
-      if (selected === agent.id) { context.strokeStyle="#95ffe5"; context.lineWidth=2; context.strokeRect(x-19,y-29,42,59); }
-      if (STATE_EMOTE[state]) { label(`${STATE_EMOTE[state]} ${STATE_LABEL[state]}`, x - 20, y - 53 + bob, Math.max(58, STATE_LABEL[state].length * 6 + 23), state === "error" ? "#752d43" : state.includes("waiting") ? "#6d5424" : "#12345a"); }
-      label(agent.name, x - 31, y + 31, 74);
+      const active = ["working", "reviewing", "meeting", "queued", "waiting_for_tool", "waiting_for_approval", "error"].includes(state);
+      const walk = !reducedMotion && active && state !== "waiting_for_approval" ? Math.round(Math.sin(now / 125)) : 0;
+      const breathe = !reducedMotion ? Math.round(Math.sin(now / 420) * 1) : 0;
+      const [x, y] = point; const color = PALETTE[agent.color]; const base = y + breathe;
+
+      // Small, floor-aware human sprites: the scene remains the protagonist.
+      context.fillStyle = "rgba(3, 7, 16, .42)"; context.beginPath(); context.ellipse(x, base + 15, 9, 3, 0, 0, Math.PI * 2); context.fill();
+      if (selected === agent.id) { context.strokeStyle = "rgba(149,255,229,.92)"; context.lineWidth = 1.5; context.beginPath(); context.ellipse(x, base + 14, 13, 5, 0, 0, Math.PI * 2); context.stroke(); }
+
+      // Feet, legs, torso, arms, head and hair are deliberately built on a 2px grid.
+      paintRect(x - 5, base + 8, 4, 7 + walk, "#26304a"); paintRect(x + 2, base + 8, 4, 7 - walk, "#26304a");
+      paintRect(x - 6, base + 4, 13, 7, agent.outfit); paintRect(x - 7, base + 6, 2, 5, agent.outfit); paintRect(x + 6, base + 6, 2, 5, agent.outfit);
+      paintRect(x - 5, base - 5, 11, 10, agent.skin); paintRect(x - 6, base - 7, 13, 4, agent.hair); paintRect(x - 6, base - 3, 2, 4, agent.hair);
+      paintRect(x - 3, base - 1, 1, 1, "#171c29"); paintRect(x + 3, base - 1, 1, 1, "#171c29"); paintRect(x - 1, base + 2, 3, 1, "rgba(96,50,45,.75)");
+      paintRect(x - 4, base + 11, 3, 2, "#171c29"); paintRect(x + 2, base + 11, 3, 2, "#171c29");
+
+      if (state === "working" || state === "reviewing") {
+        paintRect(x + 7, base + 6, 4, 2, agent.skin); paintRect(x + 10, base + 4, 5, 4, "#27334d"); paintRect(x + 11, base + 5, 3, 1, color);
+      }
+      if (state === "meeting") { paintRect(x - 11, base - 9, 2, 2, color); paintRect(x - 8, base - 12, 2, 2, color); paintRect(x - 5, base - 15, 2, 2, color); }
+      if (state === "error") { paintRect(x - 1, base - 15, 3, 5, "#ed7183"); paintRect(x - 1, base - 8, 3, 2, "#ed7183"); }
+
+      if (STATE_EMOTE[state]) { label(`${STATE_EMOTE[state]} ${STATE_LABEL[state]}`, x - 24, base - 32, Math.max(52, STATE_LABEL[state].length * 5 + 20), state === "error" ? "#752d43" : state.includes("waiting") ? "#6d5424" : "#12345a"); }
+      label(agent.name, x - 24, base + 21, 56, "rgba(7,18,38,.92)");
     };
     const render = (now) => {
       const rect = canvas.getBoundingClientRect(); const ratio = window.devicePixelRatio || 1; if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) { canvas.width = Math.round(rect.width * ratio); canvas.height = Math.round(rect.height * ratio); }

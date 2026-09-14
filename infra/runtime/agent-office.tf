@@ -163,7 +163,7 @@ resource "aws_lb_listener_rule" "office" {
 
 variable "agent_office_image" {
   type    = string
-  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office:2026-09-14-agent-office-workspace-r3"
+  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office:2026-09-14-agent-office-sprites-r4"
 }
 
 resource "aws_ecs_task_definition" "office" {
