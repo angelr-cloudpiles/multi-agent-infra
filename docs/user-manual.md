@@ -1,6 +1,6 @@
 # Manual de usuario de Agent Office
 
-Agent Office es el espacio de trabajo para gestionar agentes, tareas y conversaciones de cada proyecto. Se accede en [aiops.cloudpiles.net](https://aiops.cloudpiles.net) y todo el contenido requiere autenticación mediante Microsoft Entra ID.
+Agent Office es el visualizador de agentes, tareas, conversaciones y trazas de cada proyecto. Se accede en [aiops.cloudpiles.net](https://aiops.cloudpiles.net) y todo el contenido requiere autenticación mediante Microsoft Entra ID. El trabajo operativo se realiza desde VS Code, Kiro u OpenCode mediante el puente MCP de la plataforma.
 
 ## Acceso
 
@@ -10,6 +10,8 @@ Agent Office es el espacio de trabajo para gestionar agentes, tareas y conversac
 4. Tras validar la sesión, elegir un proyecto en la columna izquierda.
 
 No se crean API keys desde esta interfaz. Las claves de Langfuse y las credenciales de runtime son administradas por la plataforma y no se exponen al navegador.
+
+Para trabajar desde VS Code, Kiro u OpenCode, consulte el [manual de integración desde IDE](IDE-AGENT-INTEGRATION-MANUAL.md). Esa integración usa un Gateway MCP autenticado; no se conectan los IDEs directamente a Langfuse ni a las APIs internas de Agent Office.
 
 ## Proyectos y alcance
 
@@ -21,46 +23,46 @@ La lista de proyectos muestra el entorno y su alcance.
 
 Cambiar de proyecto actualiza el mapa, las tareas y el chat de esa selección.
 
-## Crear y continuar una tarea
+## Seguir una tarea
 
-La conversación de la columna derecha es el punto de entrada del trabajo.
+La conversación de la columna derecha permite revisar el hilo y las respuestas del proyecto. Para crear o continuar una tarea, use el IDE conectado.
 
-1. Seleccionar el agente inicial; el valor predeterminado es **Orchestrator**.
-2. Escribir un pedido y presionar **Enter** o **Crear tarea**. Use **Shift+Enter** para una nueva línea.
-3. El primer mensaje crea una tarea raíz. Los mensajes posteriores en ese hilo se envían como continuaciones de la misma tarea.
-4. Elegir **Nueva tarea** sólo cuando el pedido sea independiente del anterior.
+1. En el IDE, ejecutar `projects.list` y seleccionar el proyecto abierto.
+2. Usar `agents.chat` con **Orchestrator** para conversar o `tasks.create` para una tarea independiente.
+3. Conservar el `task_id` de la primera respuesta y enviar mensajes posteriores con `tasks.continue`.
+4. Abrir Agent Office para seguir el mismo hilo, estados, alertas y trazas.
 
-Se pueden adjuntar archivos desde **Adjuntar** o pegarlos en el cuadro de texto. Los adjuntos quedan asociados al proyecto y a la tarea que los recibe.
+Los adjuntos se incorporan desde el IDE según sus capacidades. Quedan asociados al proyecto y a la tarea que los recibe.
 
 Las respuestas se publican mientras el agente las genera. Una respuesta terminada puede valorarse como útil o para mejorar; ese feedback se registra en Langfuse para el proyecto correspondiente.
 
 ## Trabajar con un agente
 
-Seleccione un personaje en el mapa o un agente en el panel de detalle para ver su estado, actividad y tarea actual. Desde allí puede:
+Seleccione un personaje en el mapa o un agente en el panel de detalle para ver su estado, actividad y tarea actual. Desde allí puede revisar:
 
-- **Conversar**: enfoca el chat con ese agente como destinatario inicial.
-- **Asignar tarea**: prepara una tarea nueva para el agente seleccionado.
-- **Revisar tarea que requiere atención**: abre una tarea pausada, con error o pendiente de aprobación.
+- El agente asignado y su trabajo actual.
+- Las tareas pausadas, con error o pendientes de aprobación.
+- El hilo y las trazas disponibles para revisarlas desde el IDE o Langfuse.
 
 La actividad entre proyectos permite identificar si un mismo agente tiene trabajo en otro proyecto. La conversación sigue siempre ligada al proyecto seleccionado.
 
 ## Tareas que requieren atención
 
-Cuando un agente no puede continuar, aparece el estado **Requiere atención** y un indicador en el mapa. Use **Revisar tarea que requiere atención**.
+Cuando un agente no puede continuar, aparece el estado **Requiere atención** y un indicador en el mapa. Abra la tarea para conocer el motivo y responda desde el IDE usando `tasks.continue`.
 
 El indicador representa una tarea raíz pendiente. Al completarla, el agente vuelve a disponible aunque el hilo conserve intentos o continuaciones históricas para auditoría.
 
-La vista de asistencia tiene tres propiedades:
+La vista de asistencia conserva tres propiedades:
 
 - Muestra sólo el pedido original, sus resultados y sus continuaciones; no mezcla el historial general del proyecto.
 - Conserva los resultados de especialistas que ya terminaron.
-- El cuadro **Continuar** envía contexto a esa tarea; no crea una nueva.
+- El mismo `task_id` permite enviar contexto a esa tarea sin crear una nueva.
 
-Según el caso, verá una o más acciones:
+Según el caso, el estado puede indicar una de estas acciones para realizar desde el IDE:
 
 - **Reintentar síntesis**: reutiliza resultados preservados y repite solamente la síntesis del Orchestrator.
 - **Ver resultados disponibles**: muestra la actividad de los especialistas que sí finalizaron.
-- **Aportar información**: permite entregar una decisión, corrección o archivo al agente.
+- **Aportar información**: entrega una decisión, corrección o archivo con `tasks.continue`.
 
 Las aprobaciones de despliegue requieren un miembro independiente del grupo autorizado; responder en el chat no reemplaza esa aprobación.
 

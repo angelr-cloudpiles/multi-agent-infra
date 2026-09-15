@@ -42,6 +42,7 @@ npm run build
 La documentación operativa se encuentra en:
 
 - [Manual de usuario](docs/user-manual.md)
+- [Manual de integración desde IDE](docs/IDE-AGENT-INTEGRATION-MANUAL.md)
 - [Manual de administración](docs/admin-manual.md)
 - [Arquitectura Bedrock AgentCore y Langfuse](docs/ARCHITECTURE-BEDROCK-LANGFUSE.md)
 - [Configuración de AgentCore](docs/AGENTCORE-CONFIGURATION.md)

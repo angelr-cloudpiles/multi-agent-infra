@@ -1,0 +1,14 @@
+{
+  "name": "@cloudpiles/agent-ide-mcp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "login": "node index.mjs login",
+    "serve": "node index.mjs serve",
+    "test": "node --test test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
+}

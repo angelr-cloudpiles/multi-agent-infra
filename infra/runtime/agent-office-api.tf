@@ -4,6 +4,27 @@ locals {
   office_api_alb_listener_arn     = "arn:aws:elasticloadbalancing:us-east-1:278741241787:listener/app/multi-agent-platform-alb/c0f7525c5f206dcb/e3c5966f298fb374"
 }
 
+# The IDE bridge uses a separate public OAuth client. It has no client secret
+# and is limited to Authorization Code plus PKCE on a fixed local loopback
+# callback. Keeping it distinct from the browser client avoids broadening the
+# browser redirect surface or changing its cookie/session behavior.
+resource "aws_cognito_user_pool_client" "office_ide_mcp" {
+  name                                 = "multi-agent-ide-mcp"
+  user_pool_id                         = local.office_api_cognito_user_pool_id
+  generate_secret                      = false
+  prevent_user_existence_errors        = "ENABLED"
+  supported_identity_providers         = ["COGNITO", "EntraID"]
+  callback_urls                        = ["http://127.0.0.1:19876/oauth/callback"]
+  logout_urls                          = ["http://127.0.0.1:19876/oauth/callback"]
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_scopes                 = ["openid", "email", "profile"]
+  explicit_auth_flows                  = ["ALLOW_REFRESH_TOKEN_AUTH"]
+  enable_token_revocation              = true
+  refresh_token_validity               = 30
+  auth_session_validity                = 3
+}
+
 resource "aws_security_group" "office_api_vpc_link" {
   name        = "multi-agent-office-api-vpc-link"
   description = "API Gateway VPC Link egress for Agent Office"
@@ -62,7 +83,7 @@ resource "aws_apigatewayv2_authorizer" "office" {
   identity_sources = ["$request.header.Authorization"]
 
   jwt_configuration {
-    audience = [local.office_api_cognito_client_id]
+    audience = [local.office_api_cognito_client_id, aws_cognito_user_pool_client.office_ide_mcp.id]
     issuer   = "https://cognito-idp.us-east-1.amazonaws.com/${local.office_api_cognito_user_pool_id}"
   }
 }
@@ -116,4 +137,9 @@ resource "aws_apigatewayv2_stage" "office" {
 output "agent_office_api_endpoint" {
   description = "JWT-protected API Gateway endpoint for Agent Office"
   value       = aws_apigatewayv2_api.office.api_endpoint
+}
+
+output "agent_ide_mcp_client_id" {
+  description = "Public Cognito client id used only by the local IDE MCP bridge"
+  value       = aws_cognito_user_pool_client.office_ide_mcp.id
 }

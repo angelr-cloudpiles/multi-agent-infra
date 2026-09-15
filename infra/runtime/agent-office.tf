@@ -294,7 +294,7 @@ resource "aws_lb_listener_rule" "office_api_gateway" {
 
 variable "agent_office_image" {
   type    = string
-  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:94b99eda7eb09df36ddabb5145111c5b696862764904a9b3428319c9aa7f0204"
+  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:f8c2f962b935fe588b30d0ff21198710b66aba8dc2935f7fd12c8f3ec0316cac"
 }
 
 resource "aws_ecs_task_definition" "office" {
@@ -320,7 +320,13 @@ resource "aws_ecs_task_definition" "office" {
       { name = "EVENT_TABLE", value = aws_dynamodb_table.agent_office_events.name },
       { name = "RUN_QUEUE_URL", value = aws_sqs_queue.office_runs.url },
       { name = "EVENT_QUEUE_URL", value = aws_sqs_queue.office_events.url },
-      { name = "ATTACHMENTS_BUCKET", value = local.office_attachments_bucket }
+      { name = "ATTACHMENTS_BUCKET", value = local.office_attachments_bucket },
+      { name = "INTERFACE_MODE", value = "visualizer" },
+      { name = "COGNITO_APP_CLIENT_IDS", value = join(",", [local.office_api_cognito_client_id, aws_cognito_user_pool_client.office_ide_mcp.id]) },
+      { name = "AGENT_GATEWAY_URL", value = aws_apigatewayv2_api.office.api_endpoint },
+      { name = "IDE_MCP_CLIENT_ID", value = aws_cognito_user_pool_client.office_ide_mcp.id },
+      { name = "IDE_OAUTH_AUTHORIZATION_ENDPOINT", value = "https://aiops-multi-agent-278741241787.auth.us-east-1.amazoncognito.com/oauth2/authorize" },
+      { name = "IDE_OAUTH_TOKEN_ENDPOINT", value = "https://aiops-multi-agent-278741241787.auth.us-east-1.amazoncognito.com/oauth2/token" }
     ]
     secrets          = [{ name = "AUTH_SIGNING_KEY", valueFrom = "${aws_secretsmanager_secret.office_runtime.arn}:auth_signing_key::" }]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = local.logs, awslogs-region = "us-east-1", awslogs-stream-prefix = "agent-office" } }

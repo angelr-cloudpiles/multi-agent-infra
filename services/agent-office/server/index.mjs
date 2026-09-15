@@ -6,11 +6,20 @@ import {activityForAgent} from './agent-activity.mjs';
 const app=express();app.disable('x-powered-by');app.use(helmet({contentSecurityPolicy:{directives:{defaultSrc:["'self'"],scriptSrc:["'self'"],styleSrc:["'self'"],imgSrc:["'self'",'data:'],connectSrc:["'self'"],frameAncestors:["'none'"]}}}));app.use(express.json({limit:'24kb'}));
 const storage=new S3Client({region:'us-east-1'}),attachmentLimit=25*1024*1024;
 app.get('/healthz',(_,res)=>res.json({status:'ok'}));authRoutes(app);
+app.get('/.well-known/aiops-agent-gateway.json',(_,res)=>res.json({
+ schema_version:1,
+ gateway_url:process.env.AGENT_GATEWAY_URL,
+ authorization_endpoint:process.env.IDE_OAUTH_AUTHORIZATION_ENDPOINT,
+ token_endpoint:process.env.IDE_OAUTH_TOKEN_ENDPOINT,
+ client_id:process.env.IDE_MCP_CLIENT_ID,
+ scopes:'openid email profile',
+ identity_provider:'EntraID'
+}));
 function requestProject(req,res){try{return projectFor(req.query.project_id || defaultProjectId);}catch{return res.status(400).json({error:'Unknown project'}),null;}}
 function visibleRun(run){return run.requested_by!=='agent-office-validation'&&!run.continuation_kind;}
 app.use('/api',requireAuth);
 app.get('/api/me',(req,res)=>res.json({sub:req.user.sub,username:req.user.username,canApprove:(req.user['cognito:groups'] || []).includes('aiops-approvers')}));
-app.get('/api/config',(_,res)=>res.json({agents:policy.agents,default_project_id:defaultProjectId,projects:publicProjects()}));
+app.get('/api/config',(_,res)=>res.json({agents:policy.agents,default_project_id:defaultProjectId,projects:publicProjects(),interface_mode:process.env.INTERFACE_MODE || 'visualizer'}));
 app.get('/api/projects/:projectId/control',async(req,res)=>{
  try{res.json(await projectControl(req.params.projectId));}catch(error){res.status(error.name==='UnknownProjectError'?404:502).json({error:'Project control state is unavailable'});}
 });
