@@ -1,0 +1,26 @@
+{
+  "source": "Codex pinned tasks selected for Langfuse migration 2026-09-15",
+  "privacy": {
+    "scope": "summary_only",
+    "excluded": ["attachments", "tool_calls", "command_output", "secrets", "tokens", "costs"]
+  },
+  "records": [
+    {"project_id":"wafr-platform","codex_thread_id":"01a08181-1b36-7993-aca8-6b6f4708dd1c","title":"WAFR Platform","summary":"Plataforma local para creación de un WAFR, registro de ARN en el APN, hitos y remediaciones.","observed_at":"2026-09-10T15:02:36.000Z"},
+    {"project_id":"multi-agent","codex_thread_id":"01a09c5d-996c-7a80-a930-5421e9c262e8","title":"Proyecto Gaudi","summary":"Despliegue AWS de Langfuse, AgentCore y Agent Office sobre ECS.","observed_at":"2026-09-15T18:05:59.000Z"},
+    {"project_id":"grupo-gestion-cv-intelligence","codex_thread_id":"01a05dfb-4cf7-7933-9e38-36f06cbc0e36","title":"Grupo Gestion - CV Intelligence","summary":"Prueba de staging Nova Lite para matching con colas purgadas y validación funcional.","observed_at":"2026-09-15T17:37:15.000Z"},
+    {"project_id":"andreani-cloudflare","codex_thread_id":"019ff5fc-1df6-7be2-9262-5d92f0d0f55b","title":"Andreani - Cloudflare","summary":"Auditoría de Data Transfer, requests, fine-tuning y seguridad para Andreani Grupo Logístico.","observed_at":"2026-09-11T16:47:04.000Z"},
+    {"project_id":"ticketera-facil","codex_thread_id":"019ed5fe-f33e-7c13-bfdf-53db43ac8b3f","title":"Continuar TicketeraFacil","summary":"Continuidad del proyecto a partir del contexto proporcionado.","observed_at":"2026-09-14T15:33:11.000Z"},
+    {"project_id":"lean-vision","codex_thread_id":"019fb79e-5583-78a3-8f08-1ec0fe15f47a","title":"OPT-4370-LeanVision-IA","summary":"Análisis del proyecto, ambiente desplegado y perfil AWS de Lean Vision.","observed_at":"2026-08-31T17:23:43.000Z"},
+    {"project_id":"benito-roggio-ambiental","codex_thread_id":"019f6623-e7a9-79d0-b443-b478643cc1cb","title":"Benito Roggio Ambiental","summary":"MCP Meta Developer Tools, OAuth, tokens de WhatsApp y bra.cloudpiles.info.","observed_at":"2026-08-25T14:55:01.000Z"},
+    {"project_id":"tattoo-studio","codex_thread_id":"019f7f25-1fab-71a2-9426-3476c2cc7068","title":"Tattoo-Studio","summary":"Actualización del repositorio con tecnologías actuales y nueva identidad visual.","observed_at":"2026-09-02T09:13:42.000Z"},
+    {"project_id":"lexai","codex_thread_id":"01a02aa8-ba26-79f1-9d0f-e5d848a7888c","title":"LexAI","summary":"Plan de arquitectura, licencia comercial, base de conocimiento PII y aprobación humana.","observed_at":"2026-09-09T20:28:45.000Z"},
+    {"project_id":"licitai","codex_thread_id":"019f6f79-87a5-7d53-9476-5152115d7d0a","title":"LicitAI","summary":"Agente generando respuesta, comparación de presupuestos oficiales y revisión de latencia del chat.","observed_at":"2026-09-15T15:48:05.000Z"},
+    {"project_id":"aws-calculator","codex_thread_id":"019fc910-4f90-7421-8640-9f0da18bdbaf","title":"Servicio - AWS Calculator","summary":"Contenedor microservicio AWS con encendido automático y frontend local.","observed_at":"2026-08-26T08:51:57.000Z"},
+    {"project_id":"aws-diagram-service","codex_thread_id":"01a00be6-a053-7763-b54f-60f1bb7a719d","title":"Servicio - diagramas AWS","summary":"Resolución del error HTTP 422 de iconos AWS EFS mediante catálogo oficial.","observed_at":"2026-09-03T08:46:03.000Z"},
+    {"project_id":"licitai-cloudpiles","codex_thread_id":"01a04471-d53a-7d40-8da1-261555c332a1","title":"LicitAI Cloudpiles","summary":"Despliegue productivo, Entra ID, MSP, presupuesto y Control Tower.","observed_at":"2026-08-31T17:14:04.000Z"},
+    {"project_id":"bazar","codex_thread_id":"019f4bf4-afb7-7c30-aeb1-44576378ff0d","title":"Bazar","summary":"Bazar de plataformas para despliegue IaC, catálogo, IA autónoma y combinaciones.","observed_at":"2026-08-31T17:12:47.000Z"},
+    {"project_id":"firewall-auditor","codex_thread_id":"01a087bf-f453-7e40-9279-32ac43498eab","title":"Firewall Auditor 2.0","summary":"Análisis de solución, arquitectura, informe ejecutivo, informe completo y hallazgos.","observed_at":"2026-09-10T00:24:41.000Z"},
+    {"project_id":"saas-assessment","codex_thread_id":"019f4d67-1489-7403-b211-26114bcd230f","title":"SaaS de assessment","summary":"Despliegue productivo de assessments.cloudpiles.app y consola funcional.","observed_at":"2026-09-10T15:41:10.000Z"},
+    {"project_id":"saas-compliance","codex_thread_id":"019fed7e-8504-79f1-9dc4-81c91bfec3f1","title":"SaaS de compliance","summary":"Privacy Compliance, AWS Marketplace, diagrama Draw.io y etiquetas de proyecto.","observed_at":"2026-08-13T11:28:13.000Z"}
+  ]
+}

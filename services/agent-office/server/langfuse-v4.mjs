@@ -88,6 +88,54 @@ export async function recordLangfuseV4Generation({ project, keys, runId, agentId
   });
 }
 
+/**
+ * Records an archival Codex task as an agent observation. Historical records
+ * deliberately have no generation, model, usage, cost, tool, or attachment
+ * fields: those details were not captured by this integration and must not be
+ * inferred during the migration.
+ */
+export async function recordLangfuseV4HistoricalImport({ project, keys, record, provider }) {
+  const tracerProvider = provider || providerFor(project, keys);
+  setLangfuseTracerProvider(tracerProvider);
+  const observedAt = new Date(record.observed_at);
+  if (Number.isNaN(observedAt.getTime())) throw new Error('Historical record requires a valid observed_at timestamp');
+  const metadata = {
+    project_id: bounded(project.project_id),
+    langfuse_project_id: bounded(project.langfuse.project_id),
+    organization_id: bounded(project.langfuse.organization_id),
+    source: 'codex-historical-import',
+    codex_thread_id: bounded(record.codex_thread_id),
+    codex_history_scope: 'summary_only',
+    original_observed_at: observedAt.toISOString(),
+    access_mode: bounded(project.access_mode),
+    imported_by: 'agent-office'
+  };
+  const traceAttributes = {
+    traceName: 'codex.historical-import',
+    userId: 'codex-history-import',
+    sessionId: `codex-thread-${bounded(record.codex_thread_id)}`,
+    environment: bounded(project.environment),
+    tags: ['codex-historical-import', bounded(project.project_id), bounded(project.langfuse.organization_id)],
+    metadata
+  };
+  return propagateAttributes(traceAttributes, async () => {
+    const root = startObservation('codex.historical-import', {
+      input: {
+        title: bounded(record.title),
+        summary: bounded(record.summary, '')
+      },
+      output: {
+        archived: true,
+        source: 'Codex',
+        scope: 'summary_only'
+      },
+      metadata
+    }, { asType: 'agent', startTime: observedAt });
+    root.end(observedAt);
+    return { traceId: root.traceId, observationId: root.id };
+  });
+}
+
 export async function flushLangfuseV4Providers() {
   await Promise.all([...providers.values()].map((provider) => provider.forceFlush()));
 }

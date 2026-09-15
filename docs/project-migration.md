@@ -42,3 +42,18 @@ node scripts/sync-pinned-project-contexts.mjs --all
 ```
 
 Los checkouts Git se leen exclusivamente con `git show <SHA>:<archivo>` y por ello excluyen cambios locales. Cuando no existe un checkout verificable, el contexto queda marcado como `document_snapshot`; el agente debe pedir una fuente concreta antes de declarar hallazgos técnicos. Todos los proyectos migrados empiezan en `read_only_context` y sólo pueden pasar a un modo con mutaciones mediante una revisión explícita de permisos y herramientas.
+
+### Archivo de actividad histórica de Codex
+
+El manifiesto [`config/codex-history-import.json`](../config/codex-history-import.json) mantiene un registro por cada tarea fijada que fue seleccionada para la migración. La importación crea una observación Langfuse de tipo `AGENT` y una sesión propia por hilo (`codex-thread-<id>`), lo que permite encontrar el antecedente en el proyecto Langfuse correspondiente.
+
+El alcance es intencionalmente `summary_only`: conserva título, resumen e instante observado. No copia adjuntos, llamadas de herramientas, salidas de comandos, secretos, tokens, costes ni modelos; no se inventan campos que Codex no hubiese registrado por esta integración.
+
+Para importar o recuperar el archivo de forma idempotente:
+
+```bash
+AWS_PROFILE=aiops-aws AWS_REGION=us-east-1 \
+  node scripts/import-codex-history.mjs --all
+```
+
+El script busca primero una observación marcada `source=codex-historical-import` y el `codex_thread_id` dentro de la ventana histórica del registro. Si ya existe, informa `skipped-existing`; por eso puede ejecutarse de nuevo sin duplicar las trazas. Para revisar el alcance sin escribir, use `--dry-run`, o limite la importación a un proyecto con `--project=wafr-platform`.

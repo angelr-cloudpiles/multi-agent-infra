@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { InMemorySpanExporter } from '@opentelemetry/sdk-trace-base';
 import { LangfuseSpanProcessor } from '@langfuse/otel';
 import { LangfuseOtelSpanAttributes, setLangfuseTracerProvider } from '@langfuse/tracing';
-import { createLangfuseV4Provider, recordLangfuseV4Generation } from './langfuse-v4.mjs';
+import { createLangfuseV4Provider, recordLangfuseV4Generation, recordLangfuseV4HistoricalImport } from './langfuse-v4.mjs';
 
 test('v4 tracing writes root and generation observations with propagated project context', async () => {
   const exporter = new InMemorySpanExporter();
@@ -25,6 +25,26 @@ test('v4 tracing writes root and generation observations with propagated project
   assert.match(String(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_OUTPUT]), /Propuesta lista/);
   assert.equal(generation.attributes[LangfuseOtelSpanAttributes.TRACE_SESSION_ID], 'session-123');
   assert.equal(generation.attributes[LangfuseOtelSpanAttributes.TRACE_USER_ID], 'user-a1b2c3');
+  await provider.shutdown();
+  setLangfuseTracerProvider(null);
+});
+
+test('historical Codex import records an archival agent observation without inventing generation data', async () => {
+  const exporter = new InMemorySpanExporter();
+  const project = { project_id: 'wafr-platform', environment: 'production', access_mode: 'read_only_context', bedrock: { region: 'us-east-1' }, langfuse: { project_id: 'wafr-platform', organization_id: 'cloudpiles' } };
+  const provider = createLangfuseV4Provider({ project, keys: { public_key: 'pk-test', secret_key: 'sk-test' }, spanProcessor: new LangfuseSpanProcessor({ exporter, publicKey: 'pk-test', secretKey: 'sk-test' }) });
+  const result = await recordLangfuseV4HistoricalImport({ project, keys: { public_key: 'pk-test', secret_key: 'sk-test' }, provider, record: { codex_thread_id: 'thread-123', title: 'WAFR Platform', summary: 'Registro APN y remediaciones.', observed_at: '2026-09-10T12:00:00.000Z' } });
+  await provider.forceFlush();
+  const spans = exporter.getFinishedSpans();
+  assert.equal(spans.length, 1);
+  const root = spans[0];
+  assert.equal(root.name, 'codex.historical-import');
+  assert.equal(root.spanContext().traceId, result.traceId);
+  assert.equal(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_TYPE], 'agent');
+  assert.equal(root.attributes[LangfuseOtelSpanAttributes.TRACE_SESSION_ID], 'codex-thread-thread-123');
+  assert.match(String(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_INPUT]), /Registro APN/);
+  assert.match(String(root.attributes[LangfuseOtelSpanAttributes.OBSERVATION_OUTPUT]), /summary_only/);
+  assert.equal(spans.some((span) => span.attributes[LangfuseOtelSpanAttributes.OBSERVATION_TYPE] === 'generation'), false);
   await provider.shutdown();
   setLangfuseTracerProvider(null);
 });
