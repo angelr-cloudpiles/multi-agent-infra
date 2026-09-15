@@ -129,3 +129,7 @@ Si el login indica que el puerto está ocupado, cierre el proceso que usa `127.0
 - El puente es local únicamente para el transporte MCP. Las decisiones de autorización y la ejecución permanecen en API Gateway, Agent Office y Bedrock AgentCore.
 - Entregue al agente sólo archivos seleccionados, diff o referencias Git. No incluya `.env`, claves ni credenciales en mensajes o adjuntos.
 - La creación de ramas, PRs y despliegues requiere una integración de repositorio y política de aprobación aparte; no se habilita por el puente actual.
+
+### Proyectos migrados desde Codex
+
+Al iniciar sesión, `projects.list` muestra los proyectos registrados. Selecciona el identificador de proyecto al crear una tarea: el bridge envía ese valor a Agent Office, que fija el proyecto antes de llegar a AgentCore y Langfuse. Las conversaciones, memoria, trazas, scores y prompts permanecen separados por proyecto. Los proyectos migrados se abren inicialmente en modo de contexto de solo lectura.

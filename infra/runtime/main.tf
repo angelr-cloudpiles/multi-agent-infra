@@ -39,10 +39,10 @@ data "aws_secretsmanager_secret" "langfuse_admin_initial" {
 variable "langfuse_initial_project_id" {
   description = "Project selected for one-time Langfuse headless initialization. Existing projects are never removed."
   type        = string
-  default     = "multi-agent"
+  default     = "saas-compliance"
 
   validation {
-    condition     = contains(["multi-agent", "tattoo-studio"], var.langfuse_initial_project_id)
+    condition     = contains(concat(["multi-agent", "tattoo-studio"], keys(local.pinned_project_migrations)), var.langfuse_initial_project_id)
     error_message = "The Langfuse initialization project must be a managed project."
   }
 }
@@ -70,11 +70,46 @@ resource "aws_secretsmanager_secret_version" "langfuse_tattoo_studio_keys" {
     secret_key = "sk-lf-${random_password.langfuse_tattoo_studio_secret_key.result}"
   })
 }
+
+locals {
+  pinned_project_migrations = {
+    for project in jsondecode(file("${path.module}/../../config/codex-pinned-projects.json")).projects : project.project_id => project
+    if project.status == "selected"
+  }
+}
+
+resource "random_password" "langfuse_pinned_project_public_key" {
+  for_each = local.pinned_project_migrations
+  length   = 40
+  special  = false
+}
+
+resource "random_password" "langfuse_pinned_project_secret_key" {
+  for_each = local.pinned_project_migrations
+  length   = 48
+  special  = false
+}
+
+resource "aws_secretsmanager_secret" "langfuse_pinned_project_keys" {
+  for_each                = local.pinned_project_migrations
+  name                    = "multi-agent-langfuse-${each.key}-keys"
+  description             = "Dedicated Langfuse ingestion credentials for ${each.value.display_name}"
+  recovery_window_in_days = 7
+}
+
+resource "aws_secretsmanager_secret_version" "langfuse_pinned_project_keys" {
+  for_each  = local.pinned_project_migrations
+  secret_id = aws_secretsmanager_secret.langfuse_pinned_project_keys[each.key].id
+  secret_string = jsonencode({
+    public_key = "pk-lf-${random_password.langfuse_pinned_project_public_key[each.key].result}"
+    secret_key = "sk-lf-${random_password.langfuse_pinned_project_secret_key[each.key].result}"
+  })
+}
 data "aws_kms_alias" "s3" { name = "alias/multi-agent-s3" }
 resource "aws_iam_role_policy" "langfuse_secrets" {
   name   = "multi-agent-langfuse-runtime-secrets"
   role   = "multi-agent-ecs-task-execution-role"
-  policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = concat([for secret in data.aws_secretsmanager_secret.runtime : secret.arn], [data.aws_secretsmanager_secret.langfuse_admin_initial.arn, aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn]) }] })
+  policy = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = concat([for secret in data.aws_secretsmanager_secret.runtime : secret.arn], [data.aws_secretsmanager_secret.langfuse_admin_initial.arn, aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn], [for secret in values(aws_secretsmanager_secret.langfuse_pinned_project_keys) : secret.arn]) }] })
 }
 resource "aws_iam_role_policy" "langfuse_kms" {
   name   = "multi-agent-langfuse-s3-kms"
@@ -90,7 +125,7 @@ variable "langfuse_worker_image" {
   default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-langfuse@sha256:c2ecb2836a6e1e871bb61c9657b215565a6c308f41d41417f4680a3bf4218738"
 }
 locals {
-  langfuse_initial_projects = {
+  langfuse_builtin_initial_projects = {
     "multi-agent" = {
       id              = "multi-agent"
       name            = "Gaudi"
@@ -102,6 +137,13 @@ locals {
       keys_secret_arn = aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn
     }
   }
+  langfuse_initial_projects = merge(local.langfuse_builtin_initial_projects, {
+    for project_id, project in local.pinned_project_migrations : project_id => {
+      id              = project_id
+      name            = project.display_name
+      keys_secret_arn = aws_secretsmanager_secret.langfuse_pinned_project_keys[project_id].arn
+    }
+  })
   langfuse_initial_project = local.langfuse_initial_projects[var.langfuse_initial_project_id]
   langfuse_env = {
     HOSTNAME                         = "0.0.0.0"

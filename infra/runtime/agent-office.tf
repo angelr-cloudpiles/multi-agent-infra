@@ -118,7 +118,7 @@ resource "aws_iam_role_policy" "office_task" {
     Statement = [
       { Effect = "Allow", Action = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:Query"], Resource = aws_dynamodb_table.agent_office_events.arn },
       { Effect = "Allow", Action = ["sqs:SendMessage", "sqs:ReceiveMessage", "sqs:DeleteMessage", "sqs:ChangeMessageVisibility", "sqs:GetQueueAttributes"], Resource = [aws_sqs_queue.office_runs.arn, aws_sqs_queue.office_events.arn] },
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = [data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn] },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = concat([data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn], [for secret in values(aws_secretsmanager_secret.langfuse_pinned_project_keys) : secret.arn]) },
       { Effect = "Allow", Action = ["ecs:DescribeServices"], Resource = "*" },
       { Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject"], Resource = "arn:aws:s3:::${local.office_attachments_bucket}/agent-office/*" },
       { Effect = "Allow", Action = ["kms:Decrypt", "kms:GenerateDataKey"], Resource = data.aws_kms_alias.office_s3.target_key_arn, Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } } },
@@ -155,7 +155,7 @@ resource "aws_iam_role_policy" "office_export_task" {
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = [data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn] },
+      { Effect = "Allow", Action = ["secretsmanager:GetSecretValue"], Resource = concat([data.aws_secretsmanager_secret.langfuse_keys.arn, data.aws_secretsmanager_secret.langfuse_tattoo_studio_keys.arn], [for secret in values(aws_secretsmanager_secret.langfuse_pinned_project_keys) : secret.arn]) },
       { Effect = "Allow", Action = ["s3:PutObject"], Resource = "arn:aws:s3:::${local.traces_bucket}/exports/project-api/*" },
       { Effect = "Allow", Action = ["kms:GenerateDataKey"], Resource = data.aws_kms_alias.office_s3.target_key_arn, Condition = { StringEquals = { "kms:ViaService" = "s3.us-east-1.amazonaws.com" } } }
     ]
@@ -185,10 +185,13 @@ resource "aws_ecs_task_definition" "office_langfuse_export" {
       { name = "LANGFUSE_EXPORT_HOST", value = "https://langfuse.aiops.cloudpiles.net" },
       { name = "LANGFUSE_EXPORT_BUCKET", value = local.traces_bucket },
       { name = "LANGFUSE_EXPORT_PREFIX", value = "exports/project-api" },
-      { name = "LANGFUSE_EXPORT_PROJECTS", value = jsonencode([
+      { name = "LANGFUSE_EXPORT_PROJECTS", value = jsonencode(concat([
         { projectId = "multi-agent", secretId = "multi-agent-langfuse-keys" },
         { projectId = "tattoo-studio", secretId = "multi-agent-langfuse-tattoo-studio-keys" }
-      ]) }
+        ], [for project_id, project in local.pinned_project_migrations : {
+          projectId = project_id
+          secretId  = "multi-agent-langfuse-${project_id}-keys"
+      }])) }
     ]
     logConfiguration = { logDriver = "awslogs", options = { awslogs-group = local.logs, awslogs-region = "us-east-1", awslogs-stream-prefix = "langfuse-project-export" } }
   }])
@@ -294,7 +297,7 @@ resource "aws_lb_listener_rule" "office_api_gateway" {
 
 variable "agent_office_image" {
   type    = string
-  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:f8c2f962b935fe588b30d0ff21198710b66aba8dc2935f7fd12c8f3ec0316cac"
+  default = "278741241787.dkr.ecr.us-east-1.amazonaws.com/multi-agent-agent-office@sha256:f9a1bbfdfe186f8acd311026ed6a23f3031f8759c5a6ba6fcafcc3d54994db57"
 }
 
 resource "aws_ecs_task_definition" "office" {

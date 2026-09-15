@@ -25,3 +25,20 @@ Para probarlo en Agent Office:
 5. Verificar que la tarea, los eventos y la traza aparecen dentro del proyecto **Fede Rod Tattoo Studio** de Langfuse y que la respuesta identifica las fuentes usadas.
 
 El criterio de salida de esta etapa es una respuesta trazable y útil sin efectos externos. Las invocaciones de los harnesses de AgentCore usan Bedrock directamente. Los costos, presupuestos, cuotas y guardrails se administran en AWS. Para actualizar la fuente, usar `TATTOO_STUDIO_REPOSITORY=/ruta/al/checkout npm run sync:tattoo-context`; el script toma exclusivamente `HEAD`, registra hashes y excluye cambios locales sin commit.
+
+## Migración de proyectos fijados en Codex
+
+El inventario gestionado vive en [`config/codex-pinned-projects.json`](../config/codex-pinned-projects.json). Cada proyecto seleccionado recibe:
+
+- un proyecto Langfuse y un par de claves dedicado en AWS Secrets Manager;
+- un contexto aislado en `services/agent-office/project-contexts/`;
+- datasets, scores y prompts por agente sincronizados mediante `scripts/sync-langfuse-project.mjs`;
+- una identidad de memoria de AgentCore compuesta por proyecto, agente y usuario.
+
+Generar o refrescar los contextos desde fuentes inmutables:
+
+```bash
+node scripts/sync-pinned-project-contexts.mjs --all
+```
+
+Los checkouts Git se leen exclusivamente con `git show <SHA>:<archivo>` y por ello excluyen cambios locales. Cuando no existe un checkout verificable, el contexto queda marcado como `document_snapshot`; el agente debe pedir una fuente concreta antes de declarar hallazgos técnicos. Todos los proyectos migrados empiezan en `read_only_context` y sólo pueden pasar a un modo con mutaciones mediante una revisión explícita de permisos y herramientas.

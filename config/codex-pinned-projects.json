@@ -1,0 +1,169 @@
+{
+  "source": "Codex pinned project migration selection 2026-09-15",
+  "projects": [
+    {
+      "project_id": "multi-agent",
+      "display_name": "Proyecto Gaudi",
+      "status": "already_managed",
+      "source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/multi-agent-infra.git",
+        "revision": "addfa107bc482c4d9227861fb58a6ee3a4256114"
+      }
+    },
+    {
+      "project_id": "tattoo-studio",
+      "display_name": "Tattoo-Studio",
+      "status": "already_managed",
+      "source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/opt-3990-fede-rod-tattoo.git",
+        "revision": "398ab83d28f1e27989ea3fe10a6aea46fc66521a"
+      }
+    },
+    {
+      "project_id": "wafr-platform",
+      "display_name": "WAFR Platform",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Personales/wafr-agent"
+      }
+    },
+    {
+      "project_id": "grupo-gestion-cv-intelligence",
+      "display_name": "Grupo Gestion - CV Intelligence",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Clientes/grupo-gestion-idp"
+      }
+    },
+    {
+      "project_id": "andreani-cloudflare",
+      "display_name": "Andreani - Cloudflare",
+      "status": "selected",
+      "source": {
+        "kind": "document_snapshot",
+        "documents": [
+          "/Users/angelreale/MLOps/Clientes/andreani/Plan_Mejora_Cloudflare_Andreani.docx",
+          "/Users/angelreale/MLOps/Clientes/andreani/Procedimiento_Resolucion_Hallazgos_Cloudflare_Andreani.docx"
+        ]
+      }
+    },
+    {
+      "project_id": "ticketera-facil",
+      "display_name": "Continuar TicketeraFacil",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Clientes/ticketera-facil"
+      }
+    },
+    {
+      "project_id": "lean-vision",
+      "display_name": "OPT-4370-LeanVision-IA",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Cloudpiles/lean-vision"
+      }
+    },
+    {
+      "project_id": "benito-roggio-ambiental",
+      "display_name": "Benito Roggio Ambiental",
+      "status": "selected",
+      "source": {
+        "kind": "document_snapshot",
+        "documents": []
+      }
+    },
+    {
+      "project_id": "lexai",
+      "display_name": "LexAI",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Labs/lexai"
+      }
+    },
+    {
+      "project_id": "licitai",
+      "display_name": "LicitAI",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Clientes/opt-4621-grupo-prominente"
+      }
+    },
+    {
+      "project_id": "aws-calculator",
+      "display_name": "Servicio - AWS Calculator",
+      "status": "selected",
+      "source": {
+        "kind": "document_snapshot",
+        "documents": []
+      }
+    },
+    {
+      "project_id": "aws-diagram-service",
+      "display_name": "Servicio - diagramas AWS",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Labs/Varios/aws-diagram-service"
+      }
+    },
+    {
+      "project_id": "licitai-cloudpiles",
+      "display_name": "LicitAI Cloudpiles",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Cloudpiles/licitai"
+      }
+    },
+    {
+      "project_id": "bazar",
+      "display_name": "Bazar",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Personales/Bazar"
+      }
+    },
+    {
+      "project_id": "firewall-auditor",
+      "display_name": "Firewall Auditor 2.0",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Cloudpiles/firewall-auditor-saas"
+      }
+    },
+    {
+      "project_id": "saas-assessment",
+      "display_name": "SaaS de assessment",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Cloudpiles/auditor"
+      }
+    },
+    {
+      "project_id": "saas-compliance",
+      "display_name": "SaaS de compliance",
+      "status": "selected",
+      "source": {
+        "kind": "git_snapshot",
+        "checkout": "/Users/angelreale/MLOps/Cloudpiles/compliance"
+      }
+    }
+  ],
+  "excluded": [
+    "Veeam DR Orchestrator",
+    "Prominente - BI en AWS",
+    "Evento Simple",
+    "Escanor (Cont)"
+  ]
+}

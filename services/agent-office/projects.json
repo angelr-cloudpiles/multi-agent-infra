@@ -7,8 +7,18 @@
       "environment": "production",
       "description": "Operación de la plataforma de agentes.",
       "access_mode": "platform",
-      "allowed_agents": ["orchestrator-agent", "research-agent", "code-agent", "review-agent", "deploy-agent", "ui-design-agent"],
-      "allowed_modes": ["task", "meeting"],
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "code-agent",
+        "review-agent",
+        "deploy-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
       "langfuse": {
         "project_id": "multi-agent",
         "project_name": "Gaudi",
@@ -16,9 +26,11 @@
         "organization_name": "Cloudpiles",
         "keys_secret_id": "multi-agent-langfuse-keys"
       },
-      "bedrock": {"region": "us-east-1"},
-      "context_file": "multi-agent.md"
-      ,"context_source": {
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "multi-agent.md",
+      "context_source": {
         "kind": "git_snapshot",
         "repository": "https://github.com/angelr-cloudpiles/multi-agent-infra.git",
         "revision": "addfa107bc482c4d9227861fb58a6ee3a4256114"
@@ -30,8 +42,16 @@
       "environment": "production",
       "description": "Piloto de análisis de arquitectura y operación en modo de solo lectura.",
       "access_mode": "read_only_context",
-      "allowed_agents": ["orchestrator-agent", "research-agent", "review-agent", "ui-design-agent"],
-      "allowed_modes": ["task", "meeting"],
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
       "langfuse": {
         "project_id": "tattoo-studio",
         "project_name": "Fede Rod Tattoo Studio",
@@ -39,12 +59,506 @@
         "organization_name": "fede-rod-tattoo",
         "keys_secret_id": "multi-agent-langfuse-tattoo-studio-keys"
       },
-      "bedrock": {"region": "us-east-1"},
+      "bedrock": {
+        "region": "us-east-1"
+      },
       "context_file": "tattoo-studio.md",
       "context_source": {
         "kind": "git_snapshot",
         "repository": "https://github.com/cloudpiles/opt-3990-fede-rod-tattoo.git",
         "revision": "398ab83d28f1e27989ea3fe10a6aea46fc66521a"
+      }
+    },
+    {
+      "project_id": "wafr-platform",
+      "display_name": "WAFR Platform",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "wafr-platform",
+        "project_name": "WAFR Platform",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-wafr-platform-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "wafr-platform.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/wafr-agent.git",
+        "revision": "1dc3d5c4e8331cfa1fd93992f1e090267bcd2f5d"
+      }
+    },
+    {
+      "project_id": "grupo-gestion-cv-intelligence",
+      "display_name": "Grupo Gestion - CV Intelligence",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "grupo-gestion-cv-intelligence",
+        "project_name": "Grupo Gestion - CV Intelligence",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-grupo-gestion-cv-intelligence-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "grupo-gestion-cv-intelligence.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/grupo-gestion-idp.git",
+        "revision": "9d6c4f4b41144b6daffff959d69fced358158f78"
+      }
+    },
+    {
+      "project_id": "andreani-cloudflare",
+      "display_name": "Andreani - Cloudflare",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "andreani-cloudflare",
+        "project_name": "Andreani - Cloudflare",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-andreani-cloudflare-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "andreani-cloudflare.md",
+      "context_source": {
+        "kind": "document_snapshot",
+        "document_count": 2
+      }
+    },
+    {
+      "project_id": "ticketera-facil",
+      "display_name": "Continuar TicketeraFacil",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "ticketera-facil",
+        "project_name": "Continuar TicketeraFacil",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-ticketera-facil-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "ticketera-facil.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/ticketera-facil.git",
+        "revision": "ef63fb1ba19fd8ac707a554fd9695a0089a6b16b"
+      }
+    },
+    {
+      "project_id": "lean-vision",
+      "display_name": "OPT-4370-LeanVision-IA",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "lean-vision",
+        "project_name": "OPT-4370-LeanVision-IA",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-lean-vision-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "lean-vision.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/opt-4370-lean-vision-ia.git",
+        "revision": "3af87f0f1e1971342af744f355afebbe6524142c"
+      }
+    },
+    {
+      "project_id": "benito-roggio-ambiental",
+      "display_name": "Benito Roggio Ambiental",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "benito-roggio-ambiental",
+        "project_name": "Benito Roggio Ambiental",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-benito-roggio-ambiental-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "benito-roggio-ambiental.md",
+      "context_source": {
+        "kind": "document_snapshot",
+        "document_count": 0
+      }
+    },
+    {
+      "project_id": "lexai",
+      "display_name": "LexAI",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "lexai",
+        "project_name": "LexAI",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-lexai-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "lexai.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/lexai.git",
+        "revision": "3c11b57fabae3e709fcbb4e4b3d3dc529fb339c6"
+      }
+    },
+    {
+      "project_id": "licitai",
+      "display_name": "LicitAI",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "licitai",
+        "project_name": "LicitAI",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-licitai-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "licitai.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/opt-4621-grupo-prominente.git",
+        "revision": "c322d7cd5c7bce3faf027e8a0ae81a7a90dcfa18"
+      }
+    },
+    {
+      "project_id": "aws-calculator",
+      "display_name": "Servicio - AWS Calculator",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "aws-calculator",
+        "project_name": "Servicio - AWS Calculator",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-aws-calculator-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "aws-calculator.md",
+      "context_source": {
+        "kind": "document_snapshot",
+        "document_count": 0
+      }
+    },
+    {
+      "project_id": "aws-diagram-service",
+      "display_name": "Servicio - diagramas AWS",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "aws-diagram-service",
+        "project_name": "Servicio - diagramas AWS",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-aws-diagram-service-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "aws-diagram-service.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/aws-diagram-service.git",
+        "revision": "58055e17fdf876ce2ebbd14b553b89c8bf8e3733"
+      }
+    },
+    {
+      "project_id": "licitai-cloudpiles",
+      "display_name": "LicitAI Cloudpiles",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "licitai-cloudpiles",
+        "project_name": "LicitAI Cloudpiles",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-licitai-cloudpiles-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "licitai-cloudpiles.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/opt-4621-grupo-prominente.git",
+        "revision": "ea90a8277957f4d7f869b88e35b2b5097e1ced87"
+      }
+    },
+    {
+      "project_id": "bazar",
+      "display_name": "Bazar",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "bazar",
+        "project_name": "Bazar",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-bazar-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "bazar.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/Bazar.git",
+        "revision": "4f777e2722b2d5011b8693a0b2d54fd9adac3c8e"
+      }
+    },
+    {
+      "project_id": "firewall-auditor",
+      "display_name": "Firewall Auditor 2.0",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "firewall-auditor",
+        "project_name": "Firewall Auditor 2.0",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-firewall-auditor-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "firewall-auditor.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/firewall-auditor-saas.git",
+        "revision": "b1fb478138e58cb9843afb42207981c420487712"
+      }
+    },
+    {
+      "project_id": "saas-assessment",
+      "display_name": "SaaS de assessment",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "saas-assessment",
+        "project_name": "SaaS de assessment",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-saas-assessment-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "saas-assessment.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/cloudpiles/cloudpiles-assessment.git",
+        "revision": "33a407330e4b21a68df8e84df3620921242c264a"
+      }
+    },
+    {
+      "project_id": "saas-compliance",
+      "display_name": "SaaS de compliance",
+      "environment": "production",
+      "description": "Proyecto migrado desde los proyectos fijados de Codex. Contexto aislado en modo de solo lectura.",
+      "access_mode": "read_only_context",
+      "allowed_agents": [
+        "orchestrator-agent",
+        "research-agent",
+        "review-agent",
+        "ui-design-agent"
+      ],
+      "allowed_modes": [
+        "task",
+        "meeting"
+      ],
+      "langfuse": {
+        "project_id": "saas-compliance",
+        "project_name": "SaaS de compliance",
+        "organization_id": "cloudpiles",
+        "organization_name": "Cloudpiles",
+        "keys_secret_id": "multi-agent-langfuse-saas-compliance-keys"
+      },
+      "bedrock": {
+        "region": "us-east-1"
+      },
+      "context_file": "saas-compliance.md",
+      "context_source": {
+        "kind": "git_snapshot",
+        "repository": "https://github.com/angelr-cloudpiles/privacy-compliance.git",
+        "revision": "c134fef9bdb0424520d16a5febe41c17c0b4f771"
       }
     }
   ]
